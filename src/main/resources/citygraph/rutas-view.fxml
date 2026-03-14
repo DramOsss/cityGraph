@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="citygraph.ui.Controllers.RutasController">
+
+    <top>
+        <HBox spacing="10">
+            <padding>
+                <Insets top="10" right="10" bottom="10" left="10"/>
+            </padding>
+
+            <Button text="⟵ Volver" onAction="#onVolver"/>
+            <Label text="Gestión de Rutas" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+        </HBox>
+    </top>
+
+    <center>
+        <SplitPane dividerPositions="0.55">
+
+            <!-- Lista de rutas -->
+            <VBox spacing="8">
+                <padding>
+                    <Insets top="10" right="10" bottom="10" left="10"/>
+                </padding>
+
+                <Label text="Rutas registradas"/>
+                <ListView fx:id="lstRutas" prefHeight="320"/>
+                <Button text="Eliminar seleccionada" onAction="#onEliminarRuta"/>
+            </VBox>
+
+            <!-- Formulario -->
+            <VBox spacing="10">
+                <padding>
+                    <Insets top="10" right="10" bottom="10" left="10"/>
+                </padding>
+
+                <Label text="Agregar Ruta"/>
+
+                <GridPane hgap="10" vgap="10">
+                    <columnConstraints>
+                        <ColumnConstraints percentWidth="35"/>
+                        <ColumnConstraints percentWidth="65"/>
+                    </columnConstraints>
+
+                    <Label text="Origen:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <ComboBox fx:id="cmbOrigen" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                    <Label text="Destino:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <ComboBox fx:id="cmbDestino" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                    <Label text="Tiempo (min):" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtTiempo" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+
+                    <Label text="Distancia (km):" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtDistancia" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+
+                    <Label text="Costo:" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtCosto" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+
+                    <Label text="Transbordos:" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtTransbordos" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+                </GridPane>
+
+                <Button text="Agregar" onAction="#onAgregarRuta"/>
+                <Button text="Modificar Ruta" onAction="#onModificarRuta"/>
+                <Button text="Nueva / Limpiar" onAction="#onNuevaRuta"/>
+
+                <Label text="Mensajes"/>
+                <TextArea fx:id="txtMsg" editable="false" prefRowCount="6"/>
+            </VBox>
+
+        </SplitPane>
+    </center>
+
+</BorderPane>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="citygraph.ui.Controllers.ParadasController">
+
+    <top>
+        <HBox spacing="10">
+            <padding>
+                <Insets top="10" right="10" bottom="10" left="10"/>
+            </padding>
+
+            <Button text="⟵ Volver" onAction="#onVolver"/>
+            <Label text="Gestión de Paradas" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+        </HBox>
+    </top>
+
+    <center>
+        <SplitPane dividerPositions="0.45">
+
+            <!-- Lista -->
+            <VBox spacing="8">
+                <padding>
+                    <Insets top="10" right="10" bottom="10" left="10"/>
+                </padding>
+
+                <Label text="Paradas registradas"/>
+                <ListView fx:id="lstParadas" prefHeight="280"/>
+                <Button text="Eliminar seleccionada" onAction="#onEliminarParada"/>
+            </VBox>
+
+            <!-- Formulario -->
+            <VBox spacing="8">
+                <padding>
+                    <Insets top="10" right="10" bottom="10" left="10"/>
+                </padding>
+
+                <Label text="Agregar Parada"/>
+                <GridPane hgap="10" vgap="10">
+                    <columnConstraints>
+                        <ColumnConstraints percentWidth="30"/>
+                        <ColumnConstraints percentWidth="70"/>
+                    </columnConstraints>
+
+                    <Label text="ID:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtId" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                    <Label text="Nombre:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtNombre" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                    <Label text="Lat:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtLat" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+
+                    <Label text="Lon:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtLon" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                </GridPane>
+
+                <Button text="Agregar" onAction="#onAgregarParada"/>
+                <Button text="Modificar seleccionada" onAction="#onModificarParada"/>
+                <Button text="Nueva / Limpiar" onAction="#onNuevaParada"/>
+
+                <Label text="Mensajes"/>
+                <TextArea fx:id="txtMsg" editable="false" prefRowCount="6"/>
+            </VBox>
+
+        </SplitPane>
+    </center>
+
+</BorderPane>
