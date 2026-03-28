@@ -3,21 +3,72 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
 <VBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
       fx:controller="citygraph.ui.Controllers.HomeController"
-      spacing="12">
+      stylesheets="@styles.css"
+      prefWidth="460" prefHeight="380"
+      spacing="0"
+      style="-fx-background-color: -color-bg;">
 
     <padding>
-        <Insets top="20" right="20" bottom="20" left="20"/>
+        <Insets top="40" right="40" bottom="40" left="40"/>
     </padding>
 
-    <Label text="CityGraph" style="-fx-font-size: 22px; -fx-font-weight: bold;"/>
+    <!-- Header -->
+    <VBox spacing="4">
+        <Label text="🗺 CityGraph" styleClass="lbl-title"/>
+        <Label text="Sistema de gestión de rutas de transporte" styleClass="lbl-section"/>
+    </VBox>
 
-    <Button text="Gestión de Paradas" onAction="#onParadas" prefWidth="240"/>
-    <Button text="Gestión de Rutas" onAction="#onRutas" prefWidth="240"/>
-    <Button text="Calcular Ruta (Dijkstra)" onAction="#onCalcular" prefWidth="240"/>
+    <Region prefHeight="28"/>
+    <Separator/>
+    <Region prefHeight="24"/>
+
+    <!-- Cards de navegación -->
+    <VBox spacing="12">
+
+        <Button prefWidth="380" onAction="#onParadas" styleClass="home-card">
+            <graphic>
+                <HBox spacing="14" alignment="CENTER_LEFT">
+                    <Label text="🚏" styleClass="home-card-icon"/>
+                    <VBox spacing="2">
+                        <Label text="Gestión de Paradas" styleClass="home-card-title"/>
+                        <Label text="Agregar, modificar y eliminar paradas" styleClass="home-card-sub"/>
+                    </VBox>
+                </HBox>
+            </graphic>
+        </Button>
+
+        <Button prefWidth="380" onAction="#onRutas" styleClass="home-card">
+            <graphic>
+                <HBox spacing="14" alignment="CENTER_LEFT">
+                    <Label text="🔀" styleClass="home-card-icon"/>
+                    <VBox spacing="2">
+                        <Label text="Gestión de Rutas" styleClass="home-card-title"/>
+                        <Label text="Administrar conexiones entre paradas" styleClass="home-card-sub"/>
+                    </VBox>
+                </HBox>
+            </graphic>
+        </Button>
+
+        <Button prefWidth="380" onAction="#onCalcular" styleClass="home-card">
+            <graphic>
+                <HBox spacing="14" alignment="CENTER_LEFT">
+                    <Label text="⚡" styleClass="home-card-icon"/>
+                    <VBox spacing="2">
+                        <Label text="Calcular Ruta Óptima" styleClass="home-card-title"/>
+                        <Label text="Dijkstra: tiempo, distancia, costo o transbordos" styleClass="home-card-sub"/>
+                    </VBox>
+                </HBox>
+            </graphic>
+        </Button>
+
+    </VBox>
 
 </VBox>
