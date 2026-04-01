@@ -71,14 +71,14 @@ public class CalcularController implements StateAware {
         try {
             ResultadoRuta res = service.calcularRuta(o.getId(), d.getId(), criterio);
 
-            if (res == null || res.getCamino().isEmpty() || Double.isInfinite(res.getPesoOptimo())) {
+
+            if (res == null || !res.existeRuta()) {
                 txtResultado.setText(
                         "No se encontró un camino entre las paradas seleccionadas.\n" +
                                 "Verifique que exista una conexión entre ellas."
                 );
                 return;
             }
-
             StringBuilder sb = new StringBuilder();
             sb.append("Ruta encontrada\n\n");
             sb.append("Camino: ").append(String.join(" -> ", res.getCamino())).append("\n\n");

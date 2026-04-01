@@ -1,11 +1,13 @@
 package citygraph.service;
 
+import citygraph.algorithms.BellmanFord;
 import citygraph.algorithms.Dijkstra;
 import citygraph.graph.GrafoTransporte;
 import citygraph.model.CriterioOptimizacion;
 import citygraph.model.Parada;
 import citygraph.model.ResultadoRuta;
 import citygraph.model.Ruta;
+import citygraph.model.TipoTransporte;
 import citygraph.repository.ParadaRepository;
 import citygraph.repository.RutaRepository;
 
@@ -22,8 +24,8 @@ public class CityGraphService {
 
     public CityGraphService(ParadaRepository paradaRepository,
                             RutaRepository rutaRepository) {
-        this.paradaRepository = paradaRepository;
-        this.rutaRepository = rutaRepository;
+        this.paradaRepository = Objects.requireNonNull(paradaRepository, "paradaRepository no puede ser null");
+        this.rutaRepository = Objects.requireNonNull(rutaRepository, "rutaRepository no puede ser null");
     }
 
     public void cargarDesdeBD() {
@@ -75,36 +77,38 @@ public class CityGraphService {
         return grafo.numeroParadas();
     }
 
-
-
     // =========================
     // RUTAS
     // =========================
 
-    public void agregarRuta(Ruta r) {
-        Objects.requireNonNull(r, "Ruta no puede ser null");
-        rutaRepository.save(r);
-        grafo.agregarRuta(r);
+    public void agregarRuta(Ruta ruta) {
+        Objects.requireNonNull(ruta, "Ruta no puede ser null");
+        rutaRepository.save(ruta);
+        grafo.agregarRuta(ruta);
     }
 
-    public void modificarRuta(Ruta r) {
-        Objects.requireNonNull(r, "Ruta no puede ser null");
+    public void modificarRuta(Ruta ruta) {
+        Objects.requireNonNull(ruta, "Ruta no puede ser null");
 
         grafo.modificarRuta(
-                r.getOrigenId(),
-                r.getDestinoId(),
-                r.getTiempoMin(),
-                r.getDistanciaKm(),
-                r.getCosto(),
-                r.getTransbordos()
+                ruta.getOrigenId(),
+                ruta.getDestinoId(),
+                ruta.getTiempoMin(),
+                ruta.getDistanciaKm(),
+                ruta.getCosto(),
+                ruta.getTipoTransporte()
         );
 
-        rutaRepository.update(r);
+        rutaRepository.update(ruta);
     }
 
-    public void modificarRuta(String origenId, String destinoId,
-                              Double tiempoMin, Double distanciaKm, Double costo, Integer transbordos) {
-        Ruta ruta = new Ruta(origenId, destinoId, tiempoMin, distanciaKm, costo, transbordos);
+    public void modificarRuta(String origenId,
+                              String destinoId,
+                              Double tiempoMin,
+                              Double distanciaKm,
+                              Double costo,
+                              TipoTransporte tipoTransporte) {
+        Ruta ruta = new Ruta(origenId, destinoId, tiempoMin, distanciaKm, costo, tipoTransporte);
         modificarRuta(ruta);
     }
 
@@ -122,10 +126,10 @@ public class CityGraphService {
     }
 
     public List<Ruta> listarRutasOrdenadas() {
-        List<Ruta> todas = listarRutas();
-        todas.sort(Comparator.comparing(Ruta::getOrigenId)
-                .thenComparing(Ruta::getDestinoId));
-        return todas;
+        return listarRutas().stream()
+                .sorted(Comparator.comparing(Ruta::getOrigenId)
+                        .thenComparing(Ruta::getDestinoId))
+                .toList();
     }
 
     public int numeroRutas() {
@@ -139,6 +143,30 @@ public class CityGraphService {
     public ResultadoRuta calcularRuta(String origenId,
                                       String destinoId,
                                       CriterioOptimizacion criterio) {
+        Objects.requireNonNull(origenId, "origenId no puede ser null");
+        Objects.requireNonNull(destinoId, "destinoId no puede ser null");
+        Objects.requireNonNull(criterio, "criterio no puede ser null");
+
+        if (hayPesosNegativos(criterio)) {
+            return BellmanFord.calcular(grafo, origenId, destinoId, criterio);
+        }
+
         return Dijkstra.calcular(grafo, origenId, destinoId, criterio);
+    }
+
+    private boolean hayPesosNegativos(CriterioOptimizacion criterio) {
+        for (Ruta ruta : listarRutas()) {
+            double peso = switch (criterio) {
+                case TIEMPO -> ruta.getTiempoMin();
+                case DISTANCIA -> ruta.getDistanciaKm();
+                case COSTO -> ruta.getCosto();
+                case TRANSBORDOS -> 0.0;
+            };
+
+            if (peso < 0) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -19,6 +19,8 @@ public class BellmanFord {
         Objects.requireNonNull(destinoId, "destinoId null");
         Objects.requireNonNull(criterio, "criterio null");
 
+
+
         grafo.obtenerParada(origenId);
         grafo.obtenerParada(destinoId);
 
@@ -58,7 +60,6 @@ public class BellmanFord {
             if (!huboCambio) break;
         }
 
-        // Detectar ciclo negativo alcanzable
         for (Ruta r : todasLasRutas) {
             String u = r.getOrigenId();
             String v = r.getDestinoId();
@@ -81,7 +82,8 @@ public class BellmanFord {
         }
 
         List<String> camino = reconstruirCamino(prev, origenId, destinoId);
-        Totales totales = calcularTotales(grafo, camino);
+        List<Ruta> tramos = reconstruirTramos(grafo, camino);
+        Totales totales = calcularTotales(tramos);
 
         return new ResultadoRuta(
                 camino,
@@ -99,7 +101,9 @@ public class BellmanFord {
             case TIEMPO -> r.getTiempoMin();
             case DISTANCIA -> r.getDistanciaKm();
             case COSTO -> r.getCosto();
-            case TRANSBORDOS -> r.getTransbordos();
+            case TRANSBORDOS -> throw new UnsupportedOperationException(
+                    "TRANSBORDOS no está soportado en este algoritmo."
+            );
         };
     }
 
@@ -122,11 +126,8 @@ public class BellmanFord {
         return camino;
     }
 
-    private static Totales calcularTotales(GrafoTransporte grafo, List<String> camino) {
-        double tiempo = 0.0;
-        double distancia = 0.0;
-        double costo = 0.0;
-        int transbordos = 0;
+    private static List<Ruta> reconstruirTramos(GrafoTransporte grafo, List<String> camino) {
+        List<Ruta> tramos = new ArrayList<>();
 
         for (int i = 0; i < camino.size() - 1; i++) {
             String origen = camino.get(i);
@@ -139,13 +140,42 @@ public class BellmanFord {
                             "No se encontró la arista del camino: " + origen + " -> " + destino
                     ));
 
+            tramos.add(ruta);
+        }
+
+        return tramos;
+    }
+
+    private static Totales calcularTotales(List<Ruta> tramos) {
+        double tiempo = 0.0;
+        double distancia = 0.0;
+        double costo = 0.0;
+
+        for (Ruta ruta : tramos) {
             tiempo += ruta.getTiempoMin();
             distancia += ruta.getDistanciaKm();
             costo += ruta.getCosto();
-            transbordos += ruta.getTransbordos();
         }
 
+        int transbordos = calcularTransbordos(tramos);
+
         return new Totales(tiempo, distancia, costo, transbordos);
+    }
+
+    private static int calcularTransbordos(List<Ruta> tramos) {
+        if (tramos.isEmpty()) return 0;
+
+        int total = 0;
+        for (int i = 1; i < tramos.size(); i++) {
+            Ruta anterior = tramos.get(i - 1);
+            Ruta actual = tramos.get(i);
+
+            if (anterior.getTipoTransporte() != actual.getTipoTransporte()) {
+                total++;
+            }
+        }
+
+        return total;
     }
 
     private static ResultadoRuta resultadoVacio() {

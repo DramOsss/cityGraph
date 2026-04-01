@@ -2,6 +2,7 @@ package citygraph.repository;
 
 import citygraph.db.JdbcExecutor;
 import citygraph.model.Ruta;
+import citygraph.model.TipoTransporte;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,7 +18,7 @@ public class JdbcRutaRepository implements RutaRepository {
     @Override
     public List<Ruta> findAll() {
         String sql = """
-                SELECT origen_id, destino_id, tiempo_min, distancia_km, costo, transbordos
+                SELECT origen_id, destino_id, tiempo_min, distancia_km, costo, tipo_transporte
                 FROM rutas
                 ORDER BY origen_id, destino_id
                 """;
@@ -28,14 +29,14 @@ public class JdbcRutaRepository implements RutaRepository {
                 rs.getDouble("tiempo_min"),
                 rs.getDouble("distancia_km"),
                 rs.getDouble("costo"),
-                rs.getInt("transbordos")
+                TipoTransporte.valueOf(rs.getString("tipo_transporte"))
         ));
     }
 
     @Override
     public List<Ruta> findByOrigen(String origenId) {
         String sql = """
-                SELECT origen_id, destino_id, tiempo_min, distancia_km, costo, transbordos
+                SELECT origen_id, destino_id, tiempo_min, distancia_km, costo, tipo_transporte
                 FROM rutas
                 WHERE origen_id = ?
                 ORDER BY destino_id
@@ -49,7 +50,7 @@ public class JdbcRutaRepository implements RutaRepository {
                         rs.getDouble("tiempo_min"),
                         rs.getDouble("distancia_km"),
                         rs.getDouble("costo"),
-                        rs.getInt("transbordos")
+                        TipoTransporte.valueOf(rs.getString("tipo_transporte"))
                 )
         );
     }
@@ -57,7 +58,7 @@ public class JdbcRutaRepository implements RutaRepository {
     @Override
     public Optional<Ruta> findById(String origenId, String destinoId) {
         String sql = """
-                SELECT origen_id, destino_id, tiempo_min, distancia_km, costo, transbordos
+                SELECT origen_id, destino_id, tiempo_min, distancia_km, costo, tipo_transporte
                 FROM rutas
                 WHERE origen_id = ? AND destino_id = ?
                 """;
@@ -73,7 +74,7 @@ public class JdbcRutaRepository implements RutaRepository {
                         rs.getDouble("tiempo_min"),
                         rs.getDouble("distancia_km"),
                         rs.getDouble("costo"),
-                        rs.getInt("transbordos")
+                        TipoTransporte.valueOf(rs.getString("tipo_transporte"))
                 )
         );
     }
@@ -81,7 +82,7 @@ public class JdbcRutaRepository implements RutaRepository {
     @Override
     public void save(Ruta ruta) {
         String sql = """
-                INSERT INTO rutas(origen_id, destino_id, tiempo_min, distancia_km, costo, transbordos)
+                INSERT INTO rutas(origen_id, destino_id, tiempo_min, distancia_km, costo, tipo_transporte)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """;
 
@@ -91,7 +92,7 @@ public class JdbcRutaRepository implements RutaRepository {
             ps.setDouble(3, ruta.getTiempoMin());
             ps.setDouble(4, ruta.getDistanciaKm());
             ps.setDouble(5, ruta.getCosto());
-            ps.setInt(6, ruta.getTransbordos());
+            ps.setString(6, ruta.getTipoTransporte().name());
         });
     }
 
@@ -99,7 +100,7 @@ public class JdbcRutaRepository implements RutaRepository {
     public void update(Ruta ruta) {
         String sql = """
                 UPDATE rutas
-                SET tiempo_min = ?, distancia_km = ?, costo = ?, transbordos = ?
+                SET tiempo_min = ?, distancia_km = ?, costo = ?, tipo_transporte = ?
                 WHERE origen_id = ? AND destino_id = ?
                 """;
 
@@ -107,7 +108,7 @@ public class JdbcRutaRepository implements RutaRepository {
             ps.setDouble(1, ruta.getTiempoMin());
             ps.setDouble(2, ruta.getDistanciaKm());
             ps.setDouble(3, ruta.getCosto());
-            ps.setInt(4, ruta.getTransbordos());
+            ps.setString(4, ruta.getTipoTransporte().name());
             ps.setString(5, ruta.getOrigenId());
             ps.setString(6, ruta.getDestinoId());
         });

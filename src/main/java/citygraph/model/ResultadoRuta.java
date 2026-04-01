@@ -13,6 +13,7 @@ public class ResultadoRuta {
     private final double costoTotal;
     private final int transbordosTotal;
 
+
     public ResultadoRuta(List<String> camino,
                          boolean existe,
                          double pesoOptimo,

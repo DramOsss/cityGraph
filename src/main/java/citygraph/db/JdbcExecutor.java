@@ -18,7 +18,11 @@ public class JdbcExecutor {
             return ps.executeUpdate();
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error ejecutando update", e);
+            throw new RuntimeException(
+                    "Error ejecutando update.\nSQL: " + sql +
+                            "\nMensaje SQL: " + e.getMessage(),
+                    e
+            );
         }
     }
 
