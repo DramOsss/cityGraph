@@ -1,8 +1,8 @@
 package citygraph.ui.Controllers;
 
+import citygraph.core.AppState;
 import citygraph.ui.Navigator;
 import citygraph.ui.StateAware;
-import citygraph.core.AppState;
 
 public class HomeController implements StateAware {
 

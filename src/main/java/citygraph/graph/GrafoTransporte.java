@@ -129,4 +129,9 @@ public class GrafoTransporte {
                 .findFirst()
                 .orElseThrow(() -> new RutaNoExisteException(origenId, destinoId));
     }
+
+    public void limpiar() {
+        this.paradas.clear();
+        this.adyacencia.clear();
+    }
 }

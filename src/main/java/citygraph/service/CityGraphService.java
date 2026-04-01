@@ -1,198 +1,144 @@
 package citygraph.service;
 
+import citygraph.algorithms.Dijkstra;
 import citygraph.graph.GrafoTransporte;
+import citygraph.model.CriterioOptimizacion;
 import citygraph.model.Parada;
+import citygraph.model.ResultadoRuta;
 import citygraph.model.Ruta;
-import citygraph.util.DBConnection;
+import citygraph.repository.ParadaRepository;
+import citygraph.repository.RutaRepository;
 
-import java.sql.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 
 public class CityGraphService {
 
     private final GrafoTransporte grafo = new GrafoTransporte();
+    private final ParadaRepository paradaRepository;
+    private final RutaRepository rutaRepository;
 
-    public GrafoTransporte getGrafo() {
-        return grafo;
+    public CityGraphService(ParadaRepository paradaRepository,
+                            RutaRepository rutaRepository) {
+        this.paradaRepository = paradaRepository;
+        this.rutaRepository = rutaRepository;
     }
 
-
     public void cargarDesdeBD() {
-        try (Connection cn = DBConnection.connect()) {
+        grafo.limpiar();
 
+        List<Parada> paradas = paradaRepository.findAll();
+        for (Parada p : paradas) {
+            grafo.agregarParada(p);
+        }
 
-            try (PreparedStatement ps = cn.prepareStatement(
-                    "SELECT id, nombre, lat, lon FROM paradas ORDER BY id"
-            );
-                 ResultSet rs = ps.executeQuery()) {
-
-                while (rs.next()) {
-                    String id = rs.getString("id");
-                    String nombre = rs.getString("nombre");
-                    Double lat = (Double) rs.getObject("lat");
-                    Double lon = (Double) rs.getObject("lon");
-                    grafo.agregarParada(new Parada(id, nombre, lat, lon));
-                }
-            }
-
-
-            try (PreparedStatement ps = cn.prepareStatement(
-                    "SELECT origen_id, destino_id, tiempo_min, distancia_km, costo, transbordos FROM rutas"
-            );
-                 ResultSet rs = ps.executeQuery()) {
-
-                while (rs.next()) {
-                    grafo.agregarRuta(new Ruta(
-                            rs.getString("origen_id"),
-                            rs.getString("destino_id"),
-                            rs.getDouble("tiempo_min"),
-                            rs.getDouble("distancia_km"),
-                            rs.getDouble("costo"),
-                            rs.getInt("transbordos")
-                    ));
-                }
-            }
-
-        } catch (SQLException e) {
-            throw new RuntimeException("Error cargando datos desde BD: " + e.getMessage(), e);
+        List<Ruta> rutas = rutaRepository.findAll();
+        for (Ruta r : rutas) {
+            grafo.agregarRuta(r);
         }
     }
 
-
-    // Paradas (CRUD)
+    // =========================
+    // PARADAS
+    // =========================
 
     public void agregarParada(Parada p) {
         Objects.requireNonNull(p, "Parada no puede ser null");
-
-        // Memoria
+        paradaRepository.save(p);
         grafo.agregarParada(p);
-
-        // BD
-        try (Connection cn = DBConnection.connect();
-             PreparedStatement ps = cn.prepareStatement(
-                     "INSERT INTO paradas(id, nombre, lat, lon) VALUES (?,?,?,?)"
-             )) {
-            ps.setString(1, p.getId());
-            ps.setString(2, p.getNombre());
-            ps.setObject(3, p.getLat());
-            ps.setObject(4, p.getLon());
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            try { grafo.eliminarParada(p.getId()); } catch (Exception ignored) {}
-            throw new RuntimeException("Error insertando parada en BD: " + e.getMessage(), e);
-        }
     }
 
-    public void modificarParada(String id, String nuevoNombre, Double lat, Double lon) {
-
-        grafo.modificarParada(id, nuevoNombre, lat, lon);
-
-
-        try (Connection cn = DBConnection.connect();
-             PreparedStatement ps = cn.prepareStatement(
-                     "UPDATE paradas SET nombre = COALESCE(?, nombre), lat = ?, lon = ? WHERE id = ?"
-             )) {
-            ps.setString(1, (nuevoNombre == null || nuevoNombre.isBlank()) ? null : nuevoNombre);
-            ps.setObject(2, lat);
-            ps.setObject(3, lon);
-            ps.setString(4, id);
-
-            int rows = ps.executeUpdate();
-            if (rows == 0) throw new RuntimeException("No existe la parada en BD: " + id);
-        } catch (SQLException e) {
-            throw new RuntimeException("Error actualizando parada en BD: " + e.getMessage(), e);
-        }
+    public void modificarParada(String id, String nombre, Double lat, Double lon) {
+        grafo.modificarParada(id, nombre, lat, lon);
+        Parada actual = grafo.obtenerParada(id);
+        paradaRepository.update(actual);
     }
 
     public void eliminarParada(String id) {
-
         grafo.eliminarParada(id);
+        paradaRepository.deleteById(id);
+    }
 
+    public List<Parada> listarParadas() {
+        return new ArrayList<>(grafo.listarParadas());
+    }
 
-        try (Connection cn = DBConnection.connect();
-             PreparedStatement ps = cn.prepareStatement(
-                     "DELETE FROM paradas WHERE id = ?"
-             )) {
-            ps.setString(1, id);
-            int rows = ps.executeUpdate();
-            if (rows == 0) throw new RuntimeException("No existe la parada en BD: " + id);
-        } catch (SQLException e) {
-            throw new RuntimeException("Error eliminando parada en BD: " + e.getMessage(), e);
-        }
+    public List<Parada> listarParadasOrdenadas() {
+        return grafo.listarParadas().stream()
+                .sorted(Comparator.comparing(Parada::getId))
+                .toList();
+    }
+
+    public int numeroParadas() {
+        return grafo.numeroParadas();
     }
 
 
-    // Rutas (CRUD)
+
+    // =========================
+    // RUTAS
+    // =========================
 
     public void agregarRuta(Ruta r) {
         Objects.requireNonNull(r, "Ruta no puede ser null");
-
-
+        rutaRepository.save(r);
         grafo.agregarRuta(r);
+    }
 
+    public void modificarRuta(Ruta r) {
+        Objects.requireNonNull(r, "Ruta no puede ser null");
 
-        try (Connection cn = DBConnection.connect();
-             PreparedStatement ps = cn.prepareStatement(
-                     "INSERT INTO rutas(origen_id, destino_id, tiempo_min, distancia_km, costo, transbordos) " +
-                             "VALUES (?,?,?,?,?,?)"
-             )) {
-            ps.setString(1, r.getOrigenId());
-            ps.setString(2, r.getDestinoId());
-            ps.setDouble(3, r.getTiempoMin());
-            ps.setDouble(4, r.getDistanciaKm());
-            ps.setDouble(5, r.getCosto());
-            ps.setInt(6, r.getTransbordos());
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            try { grafo.eliminarRuta(r.getOrigenId(), r.getDestinoId()); } catch (Exception ignored) {}
-            throw new RuntimeException("Error insertando ruta en BD: " + e.getMessage(), e);
-        }
+        grafo.modificarRuta(
+                r.getOrigenId(),
+                r.getDestinoId(),
+                r.getTiempoMin(),
+                r.getDistanciaKm(),
+                r.getCosto(),
+                r.getTransbordos()
+        );
+
+        rutaRepository.update(r);
     }
 
     public void modificarRuta(String origenId, String destinoId,
                               Double tiempoMin, Double distanciaKm, Double costo, Integer transbordos) {
-
-        grafo.modificarRuta(origenId, destinoId, tiempoMin, distanciaKm, costo, transbordos);
-
-
-        try (Connection cn = DBConnection.connect();
-             PreparedStatement ps = cn.prepareStatement(
-                     "UPDATE rutas SET " +
-                             "tiempo_min = COALESCE(?, tiempo_min), " +
-                             "distancia_km = COALESCE(?, distancia_km), " +
-                             "costo = COALESCE(?, costo), " +
-                             "transbordos = COALESCE(?, transbordos) " +
-                             "WHERE origen_id = ? AND destino_id = ?"
-             )) {
-            ps.setObject(1, tiempoMin);
-            ps.setObject(2, distanciaKm);
-            ps.setObject(3, costo);
-            ps.setObject(4, transbordos);
-            ps.setString(5, origenId);
-            ps.setString(6, destinoId);
-
-            int rows = ps.executeUpdate();
-            if (rows == 0) throw new RuntimeException("No existe la ruta en BD: " + origenId + " -> " + destinoId);
-        } catch (SQLException e) {
-            throw new RuntimeException("Error actualizando ruta en BD: " + e.getMessage(), e);
-        }
+        Ruta ruta = new Ruta(origenId, destinoId, tiempoMin, distanciaKm, costo, transbordos);
+        modificarRuta(ruta);
     }
 
     public void eliminarRuta(String origenId, String destinoId) {
-
         grafo.eliminarRuta(origenId, destinoId);
+        rutaRepository.deleteById(origenId, destinoId);
+    }
 
-
-        try (Connection cn = DBConnection.connect();
-             PreparedStatement ps = cn.prepareStatement(
-                     "DELETE FROM rutas WHERE origen_id = ? AND destino_id = ?"
-             )) {
-            ps.setString(1, origenId);
-            ps.setString(2, destinoId);
-            int rows = ps.executeUpdate();
-            if (rows == 0) throw new RuntimeException("No existe la ruta en BD: " + origenId + " -> " + destinoId);
-        } catch (SQLException e) {
-            throw new RuntimeException("Error eliminando ruta en BD: " + e.getMessage(), e);
+    public List<Ruta> listarRutas() {
+        List<Ruta> todas = new ArrayList<>();
+        for (Parada p : grafo.listarParadas()) {
+            todas.addAll(grafo.vecinosDe(p.getId()));
         }
+        return todas;
+    }
+
+    public List<Ruta> listarRutasOrdenadas() {
+        List<Ruta> todas = listarRutas();
+        todas.sort(Comparator.comparing(Ruta::getOrigenId)
+                .thenComparing(Ruta::getDestinoId));
+        return todas;
+    }
+
+    public int numeroRutas() {
+        return grafo.numeroRutas();
+    }
+
+    // =========================
+    // CÁLCULO
+    // =========================
+
+    public ResultadoRuta calcularRuta(String origenId,
+                                      String destinoId,
+                                      CriterioOptimizacion criterio) {
+        return Dijkstra.calcular(grafo, origenId, destinoId, criterio);
     }
 }
