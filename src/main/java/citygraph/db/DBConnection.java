@@ -1,4 +1,4 @@
-package citygraph.util;
+package citygraph.db;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

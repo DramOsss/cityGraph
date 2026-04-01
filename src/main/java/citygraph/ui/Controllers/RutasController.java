@@ -6,20 +6,17 @@ import citygraph.model.Ruta;
 import citygraph.service.CityGraphService;
 import citygraph.ui.Navigator;
 import citygraph.ui.StateAware;
-
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
-import java.util.Optional;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 public class RutasController implements StateAware {
 
@@ -38,33 +35,24 @@ public class RutasController implements StateAware {
     private Navigator nav;
     private CityGraphService service;
 
-
-    // JavaFX lifecycle
-
     @FXML
     private void initialize() {
-        // Llenar campos + combos al seleccionar una ruta
         if (lstRutas != null) {
             lstRutas.getSelectionModel().selectedItemProperty().addListener((obs, oldV, r) -> {
                 if (r == null) {
-                    // Si se deselecciona, habilitamos combos para agregar
                     habilitarEdicionPk(true);
                     return;
                 }
 
-                // Seleccionar origen/destino en combos por ID
                 seleccionarParadaEnCombo(cmbOrigen, r.getOrigenId());
                 seleccionarParadaEnCombo(cmbDestino, r.getDestinoId());
 
-                // Llenar campos numericos
                 txtTiempo.setText(String.valueOf(r.getTiempoMin()));
                 txtDistancia.setText(String.valueOf(r.getDistanciaKm()));
                 txtCosto.setText(String.valueOf(r.getCosto()));
                 txtTransbordos.setText(String.valueOf(r.getTransbordos()));
 
-
                 habilitarEdicionPk(false);
-
                 msg("Ruta seleccionada: " + r.getOrigenId() + " -> " + r.getDestinoId());
             });
         }
@@ -78,20 +66,14 @@ public class RutasController implements StateAware {
         refrescarCombos();
         refrescarListaRutas();
 
-        // estado inicial: listo para agregar
         habilitarEdicionPk(true);
         msg("Listo. Selecciona una ruta para modificar o agrega una nueva.");
     }
-
-
-    // Navegación
 
     @FXML
     private void onVolver() {
         nav.goTo("/citygraph/home-view.fxml", "CityGraph - Inicio");
     }
-
-    // CRUD Rutas
 
     @FXML
     private void onAgregarRuta() {
@@ -123,19 +105,17 @@ public class RutasController implements StateAware {
                     transbordos
             );
 
-            //Guardar la ruta principal
             service.agregarRuta(rutaPrincipal);
 
             boolean usuarioPidioInversa = false;
             boolean inversaAgregada = false;
             String mensajeFinal = "Ruta agregada: " + origen.getId() + " -> " + destino.getId();
 
-            //Preguntar si desea agregar la inversa
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("Ruta inversa");
-            alert.setHeaderText("¿Desea agregar tambien la ruta inversa?");
-            alert.setContentText("Se agregara la ruta: "
-                    + destino.getId() + " -> " + origen.getId());
+            alert.setHeaderText("¿Desea agregar también la ruta inversa?");
+            alert.setContentText("Se agregará la ruta: " +
+                    destino.getId() + " -> " + origen.getId());
 
             Optional<ButtonType> result = alert.showAndWait();
 
@@ -162,7 +142,6 @@ public class RutasController implements StateAware {
                 }
             }
 
-            // Mensaje final según lo que pasó
             if (usuarioPidioInversa && inversaAgregada) {
                 mensajeFinal = "Ruta agregada: " + origen.getId() + " -> " + destino.getId()
                         + " y su inversa: " + destino.getId() + " -> " + origen.getId();
@@ -184,16 +163,17 @@ public class RutasController implements StateAware {
             msg("Selecciona una ruta para eliminar.");
             return;
         }
+
         try {
             service.eliminarRuta(r.getOrigenId(), r.getDestinoId());
             refrescarListaRutas();
             limpiarInputsYSeleccion();
             msg("Ruta eliminada: " + r.getOrigenId() + " -> " + r.getDestinoId());
+
         } catch (Exception e) {
             msg("Error: " + e.getMessage());
         }
     }
-
 
     @FXML
     private void onModificarRuta() {
@@ -212,15 +192,24 @@ public class RutasController implements StateAware {
             Double costo = parseNullableDouble(txtCosto.getText());
             Integer transbordos = parseNullableInt(txtTransbordos.getText());
 
-            service.modificarRuta(origenId, destinoId, tiempo, distancia, costo, transbordos);
+            Ruta rutaModificada = new Ruta(
+                    origenId,
+                    destinoId,
+                    tiempo,
+                    distancia,
+                    costo,
+                    transbordos
+            );
+
+            service.modificarRuta(rutaModificada);
 
             refrescarListaRutas();
             msg("Ruta modificada: " + origenId + " -> " + destinoId);
+
         } catch (Exception e) {
             msg("Error: " + e.getMessage());
         }
     }
-
 
     @FXML
     private void onNuevaRuta() {
@@ -228,11 +217,8 @@ public class RutasController implements StateAware {
         msg("Modo agregar: selecciona origen/destino y completa los campos.");
     }
 
-
     private void refrescarCombos() {
-        List<Parada> paradas = service.getGrafo().listarParadas().stream()
-                .sorted(Comparator.comparing(Parada::getId))
-                .toList();
+        List<Parada> paradas = service.listarParadasOrdenadas();
 
         cmbOrigen.setItems(FXCollections.observableArrayList(paradas));
         cmbDestino.setItems(FXCollections.observableArrayList(paradas));
@@ -244,21 +230,14 @@ public class RutasController implements StateAware {
     }
 
     private void refrescarListaRutas() {
-        List<Ruta> todas = new ArrayList<>();
-        for (Parada p : service.getGrafo().listarParadas()) {
-            todas.addAll(service.getGrafo().vecinosDe(p.getId()));
-        }
-        todas.sort(Comparator.comparing(Ruta::getOrigenId).thenComparing(Ruta::getDestinoId));
-        lstRutas.setItems(FXCollections.observableArrayList(todas));
+        lstRutas.setItems(FXCollections.observableArrayList(service.listarRutasOrdenadas()));
     }
 
     private void limpiarInputsYSeleccion() {
-        // Limpiar inputs
         txtTiempo.clear();
         txtDistancia.clear();
         txtCosto.clear();
         txtTransbordos.clear();
-
 
         if (lstRutas != null) {
             lstRutas.getSelectionModel().clearSelection();
@@ -299,6 +278,7 @@ public class RutasController implements StateAware {
 
     private static void seleccionarParadaEnCombo(ComboBox<Parada> combo, String paradaId) {
         if (combo == null || paradaId == null) return;
+
         for (Parada p : combo.getItems()) {
             if (paradaId.equals(p.getId())) {
                 combo.getSelectionModel().select(p);
