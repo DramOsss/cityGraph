@@ -78,9 +78,10 @@
                         <TextField fx:id="txtCosto" promptText="Ej: 35"
                                    GridPane.rowIndex="5" GridPane.columnIndex="1"/>
 
-                        <Label text="Transbordos" styleClass="label" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
-                        <TextField fx:id="txtTransbordos" promptText="Ej: 0"
-                                   GridPane.rowIndex="6" GridPane.columnIndex="1"/>
+                        <Label text="Tipo Transporte" styleClass="label" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+                        <ComboBox fx:id="cmbTipo" maxWidth="Infinity"
+                                  GridPane.rowIndex="1" GridPane.columnIndex="1"
+                                  GridPane.hgrow="ALWAYS" />
                     </GridPane>
 
                 </VBox>

@@ -3,6 +3,7 @@ package citygraph.ui.Controllers;
 import citygraph.core.AppState;
 import citygraph.model.Parada;
 import citygraph.model.Ruta;
+import citygraph.model.TipoTransporte;
 import citygraph.service.CityGraphService;
 import citygraph.ui.Navigator;
 import citygraph.ui.StateAware;
@@ -24,11 +25,11 @@ public class RutasController implements StateAware {
 
     @FXML private ComboBox<Parada> cmbOrigen;
     @FXML private ComboBox<Parada> cmbDestino;
+    @FXML private ComboBox<TipoTransporte> cmbTipo;
 
     @FXML private TextField txtTiempo;
     @FXML private TextField txtDistancia;
     @FXML private TextField txtCosto;
-    @FXML private TextField txtTransbordos;
 
     @FXML private TextArea txtMsg;
 
@@ -50,7 +51,7 @@ public class RutasController implements StateAware {
                 txtTiempo.setText(String.valueOf(r.getTiempoMin()));
                 txtDistancia.setText(String.valueOf(r.getDistanciaKm()));
                 txtCosto.setText(String.valueOf(r.getCosto()));
-                txtTransbordos.setText(String.valueOf(r.getTransbordos()));
+                cmbTipo.getSelectionModel().select(r.getTipoTransporte());
 
                 habilitarEdicionPk(false);
                 msg("Ruta seleccionada: " + r.getOrigenId() + " -> " + r.getDestinoId());
@@ -62,6 +63,9 @@ public class RutasController implements StateAware {
     public void setState(AppState state, Navigator nav) {
         this.nav = nav;
         this.service = state.getService();
+
+        cmbTipo.setItems(FXCollections.observableArrayList(TipoTransporte.values()));
+        cmbTipo.getSelectionModel().select(TipoTransporte.BUS);
 
         refrescarCombos();
         refrescarListaRutas();
@@ -80,9 +84,15 @@ public class RutasController implements StateAware {
         try {
             Parada origen = cmbOrigen.getValue();
             Parada destino = cmbDestino.getValue();
+            TipoTransporte tipo = cmbTipo.getValue();
 
             if (origen == null || destino == null) {
                 msg("Selecciona origen y destino.");
+                return;
+            }
+
+            if (tipo == null) {
+                msg("Selecciona un tipo de transporte.");
                 return;
             }
 
@@ -94,7 +104,6 @@ public class RutasController implements StateAware {
             double tiempo = Double.parseDouble(txtTiempo.getText().trim());
             double distancia = Double.parseDouble(txtDistancia.getText().trim());
             double costo = Double.parseDouble(txtCosto.getText().trim());
-            int transbordos = parseIntOrZero(txtTransbordos.getText());
 
             Ruta rutaPrincipal = new Ruta(
                     origen.getId(),
@@ -102,7 +111,7 @@ public class RutasController implements StateAware {
                     tiempo,
                     distancia,
                     costo,
-                    transbordos
+                    tipo
             );
 
             service.agregarRuta(rutaPrincipal);
@@ -129,7 +138,7 @@ public class RutasController implements StateAware {
                             tiempo,
                             distancia,
                             costo,
-                            transbordos
+                            tipo
                     );
 
                     service.agregarRuta(rutaInversa);
@@ -190,7 +199,17 @@ public class RutasController implements StateAware {
             Double tiempo = parseNullableDouble(txtTiempo.getText());
             Double distancia = parseNullableDouble(txtDistancia.getText());
             Double costo = parseNullableDouble(txtCosto.getText());
-            Integer transbordos = parseNullableInt(txtTransbordos.getText());
+            TipoTransporte tipo = cmbTipo.getValue();
+
+            if (tiempo == null || distancia == null || costo == null) {
+                msg("Tiempo, distancia y costo son obligatorios.");
+                return;
+            }
+
+            if (tipo == null) {
+                msg("Selecciona un tipo de transporte.");
+                return;
+            }
 
             Ruta rutaModificada = new Ruta(
                     origenId,
@@ -198,7 +217,7 @@ public class RutasController implements StateAware {
                     tiempo,
                     distancia,
                     costo,
-                    transbordos
+                    tipo
             );
 
             service.modificarRuta(rutaModificada);
@@ -214,7 +233,7 @@ public class RutasController implements StateAware {
     @FXML
     private void onNuevaRuta() {
         limpiarInputsYSeleccion();
-        msg("Modo agregar: selecciona origen/destino y completa los campos.");
+        msg("Modo agregar: selecciona origen/destino, tipo y completa los campos.");
     }
 
     private void refrescarCombos() {
@@ -237,7 +256,10 @@ public class RutasController implements StateAware {
         txtTiempo.clear();
         txtDistancia.clear();
         txtCosto.clear();
-        txtTransbordos.clear();
+
+        if (cmbTipo != null) {
+            cmbTipo.getSelectionModel().select(TipoTransporte.BUS);
+        }
 
         if (lstRutas != null) {
             lstRutas.getSelectionModel().clearSelection();
@@ -255,25 +277,11 @@ public class RutasController implements StateAware {
         txtMsg.setText(s);
     }
 
-    private static int parseIntOrZero(String s) {
-        if (s == null) return 0;
-        String t = s.trim();
-        if (t.isBlank()) return 0;
-        return Integer.parseInt(t);
-    }
-
     private static Double parseNullableDouble(String s) {
         if (s == null) return null;
         String t = s.trim();
         if (t.isBlank()) return null;
         return Double.parseDouble(t);
-    }
-
-    private static Integer parseNullableInt(String s) {
-        if (s == null) return null;
-        String t = s.trim();
-        if (t.isBlank()) return null;
-        return Integer.parseInt(t);
     }
 
     private static void seleccionarParadaEnCombo(ComboBox<Parada> combo, String paradaId) {

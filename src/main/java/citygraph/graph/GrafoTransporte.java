@@ -4,6 +4,7 @@ import citygraph.graph.exceptions.ParadaNoExisteException;
 import citygraph.graph.exceptions.RutaNoExisteException;
 import citygraph.model.Parada;
 import citygraph.model.Ruta;
+import citygraph.model.TipoTransporte;
 
 import java.util.*;
 
@@ -76,12 +77,14 @@ public class GrafoTransporte {
     }
 
     public void modificarRuta(String origenId, String destinoId,
-                              Double tiempoMin, Double distanciaKm, Double costo, Integer transbordos) {
+                              Double tiempoMin, Double distanciaKm, Double costo,
+                              TipoTransporte tipoTransporte) {
         Ruta ruta = buscarRuta(origenId, destinoId);
+
         if (tiempoMin != null) ruta.setTiempoMin(tiempoMin);
         if (distanciaKm != null) ruta.setDistanciaKm(distanciaKm);
         if (costo != null) ruta.setCosto(costo);
-        if (transbordos != null) ruta.setTransbordos(transbordos);
+        if (tipoTransporte != null) ruta.setTipoTransporte(tipoTransporte);
     }
 
     public void eliminarRuta(String origenId, String destinoId) {
