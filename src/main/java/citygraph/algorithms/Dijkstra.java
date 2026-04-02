@@ -7,8 +7,18 @@ import citygraph.model.Ruta;
 
 import java.util.*;
 
+/**
+ * Implementación del algoritmo de Dijkstra para el Sistema de Gestión de Rutas. [cite: 5, 6]
+ * * Este algoritmo encuentra la ruta más corta entre dos paradas en un grafo dirigido
+ * utilizando una cola de prioridad para optimizar el tiempo de búsqueda. [cite: 12, 18]
+ * Es ideal para cálculos rápidos de tiempo de viaje o distancia física. [cite: 18, 27]
+ */
 public class Dijkstra {
 
+    /**
+     * Clase interna para representar un nodo en la cola de prioridad.
+     * Permite comparar paradas basadas en su distancia acumulada desde el origen.
+     */
     private static class NodoDist implements Comparable<NodoDist> {
         String id;
         double dist;
@@ -24,6 +34,15 @@ public class Dijkstra {
         }
     }
 
+    /**
+     * Calcula la ruta óptima entre dos paradas utilizando el algoritmo de Dijkstra. [cite: 18]
+     * * @param grafo El grafo de transporte basado en listas de adyacencia. [cite: 16]
+     * @param origenId Identificador de la parada de origen. [cite: 13, 27]
+     * @param destinoId Identificador de la parada de destino. [cite: 13, 27]
+     * @param criterio El factor de optimización: TIEMPO, DISTANCIA o COSTO. [cite: 9, 15, 27]
+     * @return Un objeto {@code ResultadoRuta} con el camino óptimo y métricas totales. [cite: 29, 66]
+     * @throws Objects.requireNonNull Si alguno de los parámetros obligatorios es nulo.
+     */
     public static ResultadoRuta calcular(GrafoTransporte grafo,
                                          String origenId,
                                          String destinoId,
@@ -102,6 +121,12 @@ public class Dijkstra {
         );
     }
 
+    /**
+     * Determina el peso de una ruta según el criterio de optimización seleccionado. [cite: 15, 56]
+     * * @param r La ruta a evaluar. [cite: 15]
+     * @param criterio El criterio aplicado (Tiempo, Distancia o Costo). [cite: 41, 56]
+     * @return El valor numérico del peso para el cálculo del algoritmo. [cite: 15]
+     */
     private static double peso(Ruta r, CriterioOptimizacion criterio) {
         return switch (criterio) {
             case TIEMPO -> r.getTiempoMin();
@@ -113,6 +138,11 @@ public class Dijkstra {
         };
     }
 
+    /**
+     * Calcula la cantidad de transbordos realizados basándose en el cambio de tipo de transporte. [cite: 9, 15]
+     * * @param tramos Lista de rutas que componen el trayecto. [cite: 14]
+     * @return El número total de cambios de transporte detectados. [cite: 41]
+     */
     private static int calcularTransbordos(List<Ruta> tramos) {
         if (tramos.isEmpty()) return 0;
 
@@ -128,6 +158,13 @@ public class Dijkstra {
         return total;
     }
 
+    /**
+     * Reconstruye la secuencia de nombres de paradas desde el mapa de nodos previos. [cite: 13]
+     * * @param prev Mapa que asocia cada nodo con su predecesor en la ruta mínima.
+     * @param origenId ID de la parada inicial. [cite: 13]
+     * @param destinoId ID de la parada final. [cite: 13]
+     * @return Lista ordenada de paradas que forman el camino más corto. [cite: 27]
+     */
     private static List<String> reconstruirCamino(Map<String, String> prev, String origenId, String destinoId) {
         LinkedList<String> camino = new LinkedList<>();
         String actual = destinoId;
@@ -141,6 +178,13 @@ public class Dijkstra {
         return camino;
     }
 
+    /**
+     * Obtiene los objetos Ruta (aristas) correspondientes al camino de paradas encontrado. [cite: 14]
+     * * @param grafo La estructura de datos que contiene las conexiones. [cite: 12]
+     * @param camino Lista ordenada de identificadores de paradas. [cite: 13]
+     * @return Lista de objetos {@code Ruta} con sus respectivos atributos de viaje. [cite: 15]
+     * @throws IllegalStateException Si no existe una conexión directa entre dos paradas del camino.
+     */
     private static List<Ruta> reconstruirTramos(GrafoTransporte grafo, List<String> camino) {
         List<Ruta> tramos = new ArrayList<>();
 
