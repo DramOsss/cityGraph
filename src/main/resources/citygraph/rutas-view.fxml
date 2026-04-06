@@ -80,7 +80,7 @@
 
                         <Label text="Tipo Transporte" styleClass="label" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
                         <ComboBox fx:id="cmbTipo" maxWidth="Infinity"
-                                  GridPane.rowIndex="1" GridPane.columnIndex="1"
+                                  GridPane.rowIndex="6" GridPane.columnIndex="1"
                                   GridPane.hgrow="ALWAYS" />
                     </GridPane>
 

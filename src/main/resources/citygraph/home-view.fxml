@@ -63,7 +63,7 @@
                     <Label text="⚡" styleClass="home-card-icon"/>
                     <VBox spacing="2">
                         <Label text="Calcular Ruta Óptima" styleClass="home-card-title"/>
-                        <Label text="Dijkstra: tiempo, distancia, costo o transbordos" styleClass="home-card-sub"/>
+                        <Label text="Dijkstra o BellmanFord: tiempo, distancia, costo o transbordos" styleClass="home-card-sub"/>
                     </VBox>
                 </HBox>
             </graphic>

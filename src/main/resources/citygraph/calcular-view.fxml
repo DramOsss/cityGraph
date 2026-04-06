@@ -72,6 +72,9 @@
             <TextArea fx:id="txtResultado" editable="false" VBox.vgrow="ALWAYS"
                       style="-fx-font-size: 13px; -fx-font-family: 'Courier New', monospace;"/>
 
+            <Pane fx:id="mapPane" prefWidth="700.0" prefHeight="420.0"
+                  style="-fx-background-color: white; -fx-border-color: #cccccc;" />
+
         </VBox>
     </center>
 

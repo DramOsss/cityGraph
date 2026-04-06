@@ -61,13 +61,6 @@
                         <TextField fx:id="txtNombre" promptText="Ej: Centro Histórico"
                                    GridPane.rowIndex="1" GridPane.columnIndex="1"/>
 
-                        <Label text="Latitud" styleClass="label" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
-                        <TextField fx:id="txtLat" promptText="Ej: 18.4718 (opcional)"
-                                   GridPane.rowIndex="2" GridPane.columnIndex="1"/>
-
-                        <Label text="Longitud" styleClass="label" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
-                        <TextField fx:id="txtLon" promptText="Ej: -69.9311 (opcional)"
-                                   GridPane.rowIndex="3" GridPane.columnIndex="1"/>
                     </GridPane>
 
                 </VBox>
