@@ -5,8 +5,7 @@ import java.util.Objects;
 public class Parada {
     private final String id;
     private String nombre;
-    private Double lat;
-    private Double lon;
+
 
     public Parada(String id, String nombre) {
         if (id == null || id.isBlank()) throw new IllegalArgumentException("id inválido");
@@ -17,22 +16,17 @@ public class Parada {
 
     public Parada(String id, String nombre, Double lat, Double lon) {
         this(id.toUpperCase(), nombre);
-        this.lat = lat;
-        this.lon = lon;
+
     }
 
     public String getId() { return id.toUpperCase(); }
     public String getNombre() { return nombre; }
-    public Double getLat() { return lat; }
-    public Double getLon() { return lon; }
 
     public void setNombre(String nombre) {
         if (nombre == null || nombre.isBlank()) throw new IllegalArgumentException("nombre inválido");
         this.nombre = nombre.trim();
     }
 
-    public void setLat(Double lat) { this.lat = lat; }
-    public void setLon(Double lon) { this.lon = lon; }
 
     @Override
     public boolean equals(Object o) {

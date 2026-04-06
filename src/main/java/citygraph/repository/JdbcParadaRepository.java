@@ -16,51 +16,43 @@ public class JdbcParadaRepository implements ParadaRepository {
 
     @Override
     public List<Parada> findAll() {
-        String sql = "SELECT id, nombre, lat, lon FROM paradas ORDER BY id";
+        String sql = "SELECT id, nombre FROM paradas ORDER BY id";
 
         return jdbc.queryList(sql, null, rs -> new Parada(
                 rs.getString("id"),
-                rs.getString("nombre"),
-                rs.getDouble("lat"),
-                rs.getDouble("lon")
+                rs.getString("nombre")
         ));
     }
 
     @Override
     public Optional<Parada> findById(String id) {
-        String sql = "SELECT id, nombre, lat, lon FROM paradas WHERE id = ?";
+        String sql = "SELECT id, nombre FROM paradas WHERE id = ?";
 
         return jdbc.queryOne(sql,
                 ps -> ps.setString(1, id),
                 rs -> new Parada(
                         rs.getString("id"),
-                        rs.getString("nombre"),
-                        rs.getDouble("lat"),
-                        rs.getDouble("lon")
+                        rs.getString("nombre")
                 )
         );
     }
 
     @Override
     public void save(Parada parada) {
-        String sql = "INSERT INTO paradas(id, nombre, lat, lon) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO paradas(id, nombre) VALUES (?, ?)";
 
         jdbc.update(sql, ps -> {
             ps.setString(1, parada.getId());
             ps.setString(2, parada.getNombre());
-            ps.setDouble(3, parada.getLat());
-            ps.setDouble(4, parada.getLon());
         });
     }
 
     @Override
     public void update(Parada parada) {
-        String sql = "UPDATE paradas SET nombre = ?, lat = ?, lon = ? WHERE id = ?";
+        String sql = "UPDATE paradas SET nombre = ? WHERE id = ?";
 
         jdbc.update(sql, ps -> {
             ps.setString(1, parada.getNombre());
-            ps.setDouble(2, parada.getLat());
-            ps.setDouble(3, parada.getLon());
             ps.setString(4, parada.getId());
         });
     }

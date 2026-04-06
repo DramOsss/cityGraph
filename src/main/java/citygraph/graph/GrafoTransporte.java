@@ -27,12 +27,10 @@ public class GrafoTransporte {
         adyacencia.put(p.getId(), new ArrayList<>());
     }
 
-    public void modificarParada(String id, String nuevoNombre, Double lat, Double lon) {
+    public void modificarParada(String id, String nuevoNombre) {
         Parada p = paradas.get(id);
         if (p == null) throw new ParadaNoExisteException(id);
         if (nuevoNombre != null && !nuevoNombre.isBlank()) p.setNombre(nuevoNombre);
-        p.setLat(lat);
-        p.setLon(lon);
     }
 
     public void eliminarParada(String id) {

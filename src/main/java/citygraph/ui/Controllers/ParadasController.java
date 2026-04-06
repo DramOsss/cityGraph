@@ -17,8 +17,6 @@ public class ParadasController implements StateAware {
 
     @FXML private TextField txtId;
     @FXML private TextField txtNombre;
-    @FXML private TextField txtLat;
-    @FXML private TextField txtLon;
 
     @FXML private TextArea txtMsg;
 
@@ -36,8 +34,6 @@ public class ParadasController implements StateAware {
 
                 txtId.setText(newV.getId());
                 txtNombre.setText(newV.getNombre());
-                txtLat.setText(newV.getLat() == null ? "" : String.valueOf(newV.getLat()));
-                txtLon.setText(newV.getLon() == null ? "" : String.valueOf(newV.getLon()));
 
                 habilitarEdicion(false);
                 msg("Parada seleccionada: " + newV.getId() + " -> " + newV.getNombre());
@@ -70,10 +66,8 @@ public class ParadasController implements StateAware {
                 return;
             }
 
-            Double lat = parseNullableDouble(txtLat.getText());
-            Double lon = parseNullableDouble(txtLon.getText());
 
-            service.agregarParada(new Parada(id, nombre, lat, lon));
+            service.agregarParada(new Parada(id, nombre));
 
             refrescarLista();
             limpiarInputsYSeleccion();
@@ -112,16 +106,15 @@ public class ParadasController implements StateAware {
         }
 
         try {
+
             String id = sel.getId();
             String nuevoNombre = safe(txtNombre.getText());
-            Double lat = parseNullableDouble(txtLat.getText());
-            Double lon = parseNullableDouble(txtLon.getText());
 
             if (nuevoNombre.isBlank()) {
                 nuevoNombre = null;
             }
 
-            service.modificarParada(id, nuevoNombre, lat, lon);
+            service.modificarParada(id, nuevoNombre);
 
             refrescarLista();
             msg("Parada modificada: " + id);
@@ -144,8 +137,7 @@ public class ParadasController implements StateAware {
     private void limpiarInputsYSeleccion() {
         txtId.clear();
         txtNombre.clear();
-        txtLat.clear();
-        txtLon.clear();
+
 
         if (lstParadas != null) {
             lstParadas.getSelectionModel().clearSelection();

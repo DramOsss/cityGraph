@@ -52,8 +52,8 @@ public class CityGraphService {
         grafo.agregarParada(p);
     }
 
-    public void modificarParada(String id, String nombre, Double lat, Double lon) {
-        grafo.modificarParada(id, nombre, lat, lon);
+    public void modificarParada(String id, String nombre) {
+        grafo.modificarParada(id, nombre);
         Parada actual = grafo.obtenerParada(id);
         paradaRepository.update(actual);
     }
