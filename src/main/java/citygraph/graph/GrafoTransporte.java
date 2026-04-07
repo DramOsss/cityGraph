@@ -77,7 +77,7 @@ public class GrafoTransporte {
     public void modificarRuta(String origenId, String destinoId,
                               Double tiempoMin, Double distanciaKm, Double costo,
                               TipoTransporte tipoTransporte) {
-        Ruta ruta = buscarRuta(origenId, destinoId);
+        Ruta ruta = obtenerRuta(origenId, destinoId);
 
         if (tiempoMin != null) ruta.setTiempoMin(tiempoMin);
         if (distanciaKm != null) ruta.setDistanciaKm(distanciaKm);
@@ -100,10 +100,7 @@ public class GrafoTransporte {
         return Collections.unmodifiableList(adyacencia.get(origenId));
     }
 
-    public boolean existeArista(String origenId, String destinoId) {
-        if (!paradas.containsKey(origenId) || !paradas.containsKey(destinoId)) return false;
-        return adyacencia.get(origenId).stream().anyMatch(r -> r.getDestinoId().equals(destinoId));
-    }
+
 
     public int numeroParadas() {
         return paradas.size();
@@ -121,7 +118,7 @@ public class GrafoTransporte {
         if (!paradas.containsKey(id)) throw new ParadaNoExisteException(id);
     }
 
-    private Ruta buscarRuta(String origenId, String destinoId) {
+    public Ruta obtenerRuta(String origenId, String destinoId) {
         validarParadaExiste(origenId);
         validarParadaExiste(destinoId);
 
@@ -130,6 +127,7 @@ public class GrafoTransporte {
                 .findFirst()
                 .orElseThrow(() -> new RutaNoExisteException(origenId, destinoId));
     }
+
 
     public void limpiar() {
         this.paradas.clear();

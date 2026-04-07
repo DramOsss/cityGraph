@@ -6,9 +6,14 @@ import java.sql.SQLException;
 
 public class DBConnection {
 
-    private static final String URL = "jdbc:postgresql://localhost:5432/cityGraphDb";
-    private static final String USER = "postgres";
-    private static final String PASSWORD = "12345";
+    private static final String URL =
+            System.getenv().getOrDefault("CITYGRAPH_DB_URL", "jdbc:postgresql://localhost:5432/cityGraphDb");
+
+    private static final String USER =
+            System.getenv().getOrDefault("CITYGRAPH_DB_USER", "postgres");
+
+    private static final String PASSWORD =
+            System.getenv().getOrDefault("CITYGRAPH_DB_PASSWORD", "12345");
 
     static {
         try {
