@@ -22,6 +22,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Controlador de la interfaz de usuario para el cálculo y visualización de rutas óptimas.
+ * * Esta clase gestiona la lógica de la vista de cálculo, permitiendo al usuario seleccionar
+ * puntos de origen, destino y criterios de optimización. Incluye un motor de renderizado
+ * dinámico sobre un {@code Pane} de JavaFX para representar el grafo de transporte
+ * de forma circular y resaltar el camino calculado.
+ */
 public class CalcularController implements StateAware {
 
     @FXML private ComboBox<Parada> cmbOrigen;
@@ -37,6 +44,12 @@ public class CalcularController implements StateAware {
     private static final double MAP_HEIGHT = 420;
     private static final double PADDING = 40;
 
+    /**
+     * Inicializa el estado del controlador, configura los componentes de la UI
+     * y renderiza la base del mapa.
+     * * @param state El estado global de la aplicación.
+     * @param nav El navegador para la gestión de rutas de la UI.
+     */
     @Override
     public void setState(AppState state, Navigator nav) {
         this.nav = nav;
@@ -51,11 +64,21 @@ public class CalcularController implements StateAware {
         txtResultado.setText("Selecciona origen, destino y criterio, luego presiona Calcular.");
     }
 
+    /**
+     * Gestiona la lógica de cálculo de la ruta óptima.
+     * * Valida las selecciones del usuario, invoca al motor de búsqueda del servicio
+     * y actualiza tanto el área de texto con los detalles métricos como el mapa
+     * visual con el camino resaltado.
+     */
     @FXML
     private void onVolver() {
         nav.goTo("/citygraph/home-view.fxml", "CityGraph - Inicio");
     }
 
+    /**
+     * Sincroniza la lista de paradas y el mapa visual con el estado actual
+     * del servicio, útil tras realizar modificaciones en la red.
+     */
     @FXML
     private void onRefrescar() {
         refrescarParadas();
@@ -122,6 +145,10 @@ public class CalcularController implements StateAware {
         }
     }
 
+    /**
+     * Actualiza los selectores de origen y destino con la lista de paradas
+     * disponibles obtenidas del servicio, ordenadas alfabéticamente.
+     */
     private void refrescarParadas() {
         List<Parada> paradas = service.listarParadasOrdenadas();
 
@@ -138,6 +165,12 @@ public class CalcularController implements StateAware {
     // MAPA
     // =========================
 
+    /**
+     * Renderiza la estructura completa del grafo en el panel de visualización.
+     * * Calcula las posiciones de los nodos en una distribución circular y dibuja
+     * las rutas existentes como líneas dirigidas con flechas, aplicando un
+     * desplazamiento visual para diferenciar rutas de ida y vuelta.
+     */
     private void dibujarMapaBase() {
         mapPane.getChildren().clear();
 
@@ -176,6 +209,12 @@ public class CalcularController implements StateAware {
         }
     }
 
+    /**
+     * Resalta visualmente el camino óptimo encontrado por el algoritmo.
+     * * Dibuja las aristas del camino en color verde con un grosor mayor y
+     * destaca los nodos que forman parte de la ruta.
+     * * @param camino Lista de identificadores de paradas que componen la ruta.
+     */
     private void dibujarMejorRuta(List<String> camino) {
         if (camino == null || camino.size() < 2) return;
 
@@ -214,6 +253,12 @@ public class CalcularController implements StateAware {
         }
     }
 
+    /**
+     * Aplica un resaltado visual distintivo a las paradas seleccionadas como
+     * origen y destino dentro del mapa, facilitando su localización rápida.
+     * * @param origen La parada definida como punto de partida.
+     * @param destino La parada definida como punto de llegada.
+     */
     private void resaltarOrigenDestino(Parada origen, Parada destino) {
         if (origen == null || destino == null) return;
 
@@ -269,6 +314,13 @@ public class CalcularController implements StateAware {
         return puntos;
     }
 
+    /**
+     * Busca una instancia de ruta entre dos nodos específicos consultando
+     * el listado global del servicio.
+     * * @param origenId Identificador de la parada de salida.
+     * @param destinoId Identificador de la parada de llegada.
+     * @return El objeto {@link citygraph.model.Ruta} encontrado o {@code null} si no existe.
+     */
     private Ruta buscarRutaEntre(String origenId, String destinoId) {
         return service.listarRutas().stream()
                 .filter(r -> r.getOrigenId().equals(origenId) && r.getDestinoId().equals(destinoId))
@@ -337,10 +389,19 @@ public class CalcularController implements StateAware {
         mapPane.getChildren().addAll(a, b);
     }
 
+    /**
+     * Estructura de datos auxiliar para el almacenamiento de coordenadas cartesianas.
+     * Utilizada para posicionar elementos geométricos en el panel de dibujo.
+     */
     private static class Punto {
         double x;
         double y;
 
+        /**
+         * Crea una nueva instancia de punto con coordenadas específicas.
+         * @param x Posición horizontal.
+         * @param y Posición vertical.
+         */
         Punto(double x, double y) {
             this.x = x;
             this.y = y;
