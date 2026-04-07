@@ -85,27 +85,7 @@ public class CalcularController implements StateAware {
         dibujarMapaBase();
         txtResultado.setText("Paradas y mapa refrescados.");
     }
-    /**
-     * Gestiona el flujo completo de cálculo y visualización de rutas óptimas.
-     * * Este método realiza las siguientes acciones coordinadas:
-     * 1. **Validación de Entrada:** Verifica que los selectores de origen, destino
-     * y criterio contengan valores válidos y que no se intente calcular una
-     * ruta hacia el mismo punto de partida.
-     * 2. **Ejecución de Lógica:** Invoca al {@link citygraph.service.CityGraphService}
-     * para determinar el camino mínimo, permitiendo que el sistema elija
-     * automáticamente el algoritmo pertinente (Dijkstra o Bellman-Ford).
-     * 3. **Gestión de Resultados:**
-     * - Si la ruta existe: Construye un reporte detallado en el área de texto
-     * incluyendo el desglose de paradas, pesos óptimos, totales de viaje y
-     * el algoritmo utilizado.
-     * - Si la ruta no existe: Notifica al usuario y limpia las representaciones
-     * previas en el mapa.
-     * 4. **Actualización Gráfica:** Redibuja el mapa base y superpone de forma
-     * destacada la "Mejor Ruta" calculada, resaltando visualmente los nodos
-     * de inicio y fin para facilitar la orientación del usuario.
-     * * @see citygraph.model.ResultadoRuta
-     * @see citygraph.service.CityGraphService#calcularRuta
-     */
+
     @FXML
     private void onCalcular() {
         Parada o = cmbOrigen.getValue();
@@ -156,6 +136,24 @@ public class CalcularController implements StateAware {
             txtResultado.setText(sb.toString());
 
             dibujarMapaBase();
+            // 🔵 DFS caminos alternativos
+            List<List<String>> caminosDFS = service.calcularCaminosDFS(
+                    o.getId(),
+                    d.getId(),
+                    criterio,
+                    4
+            );
+
+
+            caminosDFS.removeIf(c -> c.equals(res.getCamino()));
+
+
+            dibujarCaminosDFS(caminosDFS);
+
+
+            dibujarMejorRuta(res.getCamino());
+
+            resaltarOrigenDestino(o, d);
             dibujarMejorRuta(res.getCamino());
             resaltarOrigenDestino(o, d);
 
@@ -226,6 +224,43 @@ public class CalcularController implements StateAware {
             label.setStyle("-fx-font-size: 11px; -fx-font-weight: bold;");
 
             mapPane.getChildren().addAll(circle, label);
+        }
+    }
+
+    private void dibujarCaminosDFS(List<List<String>> caminos) {
+        if (caminos == null || caminos.isEmpty()) return;
+
+        List<Parada> paradas = service.listarParadasOrdenadas();
+        Map<String, Punto> puntos = calcularPuntos(paradas);
+
+        for (List<String> camino : caminos) {
+            if (camino.size() < 2) continue;
+
+            for (int i = 0; i < camino.size() - 1; i++) {
+
+                String origen = camino.get(i);
+                String destino = camino.get(i + 1);
+
+                Punto p1 = puntos.get(origen);
+                Punto p2 = puntos.get(destino);
+
+                if (p1 == null || p2 == null) continue;
+
+                Ruta ruta = buscarRutaEntre(origen, destino);
+                if (ruta == null) continue;
+
+                Line linea = crearLineaDirigida(ruta, p1, p2, Color.DODGERBLUE, 3.0);
+                mapPane.getChildren().add(linea);
+
+                agregarFlecha(
+                        linea.getStartX(),
+                        linea.getStartY(),
+                        linea.getEndX(),
+                        linea.getEndY(),
+                        Color.DODGERBLUE,
+                        2.0
+                );
+            }
         }
     }
 

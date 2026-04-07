@@ -14,10 +14,7 @@ import citygraph.repository.RutaRepository;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Clase de servicio principal que actúa como fachada (Facade) para la gestión del sistema.
@@ -357,6 +354,81 @@ public class CityGraphService {
 
         return "Dijkstra";
     }
+
+    public List<List<String>> calcularCaminosDFS(String origenId,
+                                                 String destinoId,
+                                                 CriterioOptimizacion criterio,
+                                                 int maxAlternativos) {
+
+        List<CaminoDFS> candidatos = new ArrayList<>();
+
+        List<String> caminoActual = new ArrayList<>();
+        caminoActual.add(origenId);
+
+        Set<String> visitados = new HashSet<>();
+        visitados.add(origenId);
+
+        dfsBuscarCaminos(origenId, destinoId, criterio, visitados, caminoActual, candidatos);
+
+        // ordenar por peso
+        candidatos.sort(Comparator.comparingDouble(CaminoDFS::getPeso));
+
+        List<List<String>> resultado = new ArrayList<>();
+
+        for (CaminoDFS c : candidatos) {
+            if (resultado.size() >= maxAlternativos) break;
+            resultado.add(c.getCamino());
+        }
+
+        return resultado;
+    }
+
+    private void dfsBuscarCaminos(String actual,
+                                  String destino,
+                                  CriterioOptimizacion criterio,
+                                  Set<String> visitados,
+                                  List<String> caminoActual,
+                                  List<CaminoDFS> resultados) {
+
+        if (actual.equals(destino)) {
+            double peso = calcularPesoDFS(caminoActual, criterio);
+            resultados.add(new CaminoDFS(new ArrayList<>(caminoActual), peso));
+            return;
+        }
+
+        for (Ruta ruta : grafo.vecinosDe(actual)) {
+            String siguiente = ruta.getDestinoId();
+
+            if (visitados.contains(siguiente)) continue;
+
+            visitados.add(siguiente);
+            caminoActual.add(siguiente);
+
+            dfsBuscarCaminos(siguiente, destino, criterio, visitados, caminoActual, resultados);
+
+            caminoActual.remove(caminoActual.size() - 1);
+            visitados.remove(siguiente);
+        }
+    }
+
+    private double calcularPesoDFS(List<String> camino, CriterioOptimizacion criterio) {
+        double total = 0.0;
+
+        for (int i = 0; i < camino.size() - 1; i++) {
+            Ruta ruta = grafo.obtenerRuta(camino.get(i), camino.get(i + 1));
+
+            total += switch (criterio) {
+                case TIEMPO -> ruta.getTiempoMin();
+                case DISTANCIA -> ruta.getDistanciaKm();
+                case COSTO -> ruta.getCosto();
+                case TRANSBORDOS -> 1.0;
+            };
+        }
+
+        return total;
+    }
+
+
 
     // =========================
     // VALIDACIONES INTERNAS
