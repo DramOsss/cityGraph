@@ -88,7 +88,7 @@ public class JdbcParadaRepository implements ParadaRepository {
 
         jdbc.update(sql, ps -> {
             ps.setString(1, parada.getNombre());
-            ps.setString(4, parada.getId());
+            ps.setString(2, parada.getId());
         });
     }
 

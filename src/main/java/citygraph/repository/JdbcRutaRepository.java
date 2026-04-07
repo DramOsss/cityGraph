@@ -4,6 +4,9 @@ import citygraph.db.JdbcExecutor;
 import citygraph.model.Ruta;
 import citygraph.model.TipoTransporte;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
@@ -114,20 +117,23 @@ public class JdbcRutaRepository implements RutaRepository {
      * incluyendo el tipo de transporte y métricas asociadas.
      */
     @Override
-    public void save(Ruta ruta) {
+    public void save(Connection conn, Ruta ruta) {
         String sql = """
-                INSERT INTO rutas(origen_id, destino_id, tiempo_min, distancia_km, costo, tipo_transporte)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """;
+        INSERT INTO rutas(origen_id, destino_id, tiempo_min, distancia_km, costo, tipo_transporte)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """;
 
-        jdbc.update(sql, ps -> {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, ruta.getOrigenId());
             ps.setString(2, ruta.getDestinoId());
             ps.setDouble(3, ruta.getTiempoMin());
             ps.setDouble(4, ruta.getDistanciaKm());
             ps.setDouble(5, ruta.getCosto());
             ps.setString(6, ruta.getTipoTransporte().name());
-        });
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error guardando ruta", e);
+        }
     }
 
     /**
@@ -136,21 +142,24 @@ public class JdbcRutaRepository implements RutaRepository {
      * * @param ruta Objeto con los datos actualizados para el tramo correspondiente.
      */
     @Override
-    public void update(Ruta ruta) {
+    public void update(Connection conn, Ruta ruta) {
         String sql = """
-                UPDATE rutas
-                SET tiempo_min = ?, distancia_km = ?, costo = ?, tipo_transporte = ?
-                WHERE origen_id = ? AND destino_id = ?
-                """;
+        UPDATE rutas
+        SET tiempo_min = ?, distancia_km = ?, costo = ?, tipo_transporte = ?
+        WHERE origen_id = ? AND destino_id = ?
+    """;
 
-        jdbc.update(sql, ps -> {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDouble(1, ruta.getTiempoMin());
             ps.setDouble(2, ruta.getDistanciaKm());
             ps.setDouble(3, ruta.getCosto());
             ps.setString(4, ruta.getTipoTransporte().name());
             ps.setString(5, ruta.getOrigenId());
             ps.setString(6, ruta.getDestinoId());
-        });
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error actualizando ruta", e);
+        }
     }
 
     /**
@@ -159,11 +168,15 @@ public class JdbcRutaRepository implements RutaRepository {
      * @param destinoId Identificador de la parada de destino.
      */
     @Override
-    public void deleteById(String origenId, String destinoId) {
+    public void deleteById(Connection conn, String origenId, String destinoId) {
         String sql = "DELETE FROM rutas WHERE origen_id = ? AND destino_id = ?";
-        jdbc.update(sql, ps -> {
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, origenId);
             ps.setString(2, destinoId);
-        });
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error eliminando ruta", e);
+        }
     }
 }

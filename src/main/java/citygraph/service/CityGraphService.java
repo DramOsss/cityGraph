@@ -1,16 +1,19 @@
 package citygraph.service;
 
 import citygraph.algorithms.BellmanFord;
+import citygraph.graph.exceptions.CicloNegativoException;
 import citygraph.algorithms.Dijkstra;
+import citygraph.db.DBConnection;
 import citygraph.graph.GrafoTransporte;
 import citygraph.model.CriterioOptimizacion;
 import citygraph.model.Parada;
 import citygraph.model.ResultadoRuta;
 import citygraph.model.Ruta;
-import citygraph.model.TipoTransporte;
 import citygraph.repository.ParadaRepository;
 import citygraph.repository.RutaRepository;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -120,21 +123,39 @@ public class CityGraphService {
     public void agregarRuta(Ruta ruta) {
         Objects.requireNonNull(ruta, "Ruta no puede ser null");
 
-        grafo.agregarRuta(ruta); // agregar temporalmente para validar el estado final
+        try (Connection conn = DBConnection.connect()) {
+            conn.setAutoCommit(false);
 
-        try {
-            if (tieneCostosNegativos()) {
-                validarSinCiclosNegativos();
+            try {
+                grafo.agregarRuta(ruta);
+
+                if (tieneCostosNegativos()) {
+                    validarSinCiclosNegativos();
+                }
+
+                rutaRepository.save(conn, ruta);
+                conn.commit();
+
+            } catch (CicloNegativoException e) {
+                rollbackSilencioso(conn);
+                rollbackAgregarRutaMemoria(ruta);
+
+                throw new IllegalArgumentException(
+                        "No se puede agregar la ruta: generaría un ciclo negativo"
+                );
+            } catch (RuntimeException e) {
+                rollbackSilencioso(conn);
+                rollbackAgregarRutaMemoria(ruta);
+                throw e;
+            } catch (Exception e) {
+                rollbackSilencioso(conn);
+                rollbackAgregarRutaMemoria(ruta);
+
+                throw new RuntimeException("Error al agregar la ruta: " + e.getMessage(), e);
             }
 
-            rutaRepository.save(ruta);
-
-        } catch (Exception e) {
-            grafo.eliminarRuta(ruta.getOrigenId(), ruta.getDestinoId());
-
-            throw new IllegalArgumentException(
-                    "No se puede agregar la ruta: generaría un ciclo negativo"
-            );
+        } catch (SQLException e) {
+            throw new RuntimeException("Error de conexión: " + e.getMessage(), e);
         }
     }
 
@@ -147,61 +168,94 @@ public class CityGraphService {
     public void modificarRuta(Ruta ruta) {
         Objects.requireNonNull(ruta, "Ruta no puede ser null");
 
-        Ruta rutaAnterior = buscarRuta(ruta.getOrigenId(), ruta.getDestinoId());
-        if (rutaAnterior == null) {
-            throw new IllegalArgumentException("La ruta no existe");
-        }
+        Ruta actual = buscarRuta(ruta.getOrigenId(), ruta.getDestinoId());
 
-        try {
-            grafo.modificarRuta(
-                    ruta.getOrigenId(),
-                    ruta.getDestinoId(),
-                    ruta.getTiempoMin(),
-                    ruta.getDistanciaKm(),
-                    ruta.getCosto(),
-                    ruta.getTipoTransporte()
-            );
+        Ruta respaldo = new Ruta(
+                actual.getOrigenId(),
+                actual.getDestinoId(),
+                actual.getTiempoMin(),
+                actual.getDistanciaKm(),
+                actual.getCosto(),
+                actual.getTipoTransporte()
+        );
 
-            if (tieneCostosNegativos()) {
-                validarSinCiclosNegativos();
+        try (Connection conn = DBConnection.connect()) {
+            conn.setAutoCommit(false);
+
+            try {
+                grafo.modificarRuta(
+                        ruta.getOrigenId(),
+                        ruta.getDestinoId(),
+                        ruta.getTiempoMin(),
+                        ruta.getDistanciaKm(),
+                        ruta.getCosto(),
+                        ruta.getTipoTransporte()
+                );
+
+                if (tieneCostosNegativos()) {
+                    validarSinCiclosNegativos();
+                }
+
+                rutaRepository.update(conn, ruta);
+                conn.commit();
+
+            } catch (CicloNegativoException e) {
+                rollbackSilencioso(conn);
+                restaurarRutaEnMemoria(respaldo);
+
+                throw new IllegalArgumentException(
+                        "No se puede modificar la ruta: generaría un ciclo negativo"
+                );
+            } catch (RuntimeException e) {
+                rollbackSilencioso(conn);
+                restaurarRutaEnMemoria(respaldo);
+                throw e;
+            } catch (Exception e) {
+                rollbackSilencioso(conn);
+                restaurarRutaEnMemoria(respaldo);
+
+                throw new RuntimeException("Error al modificar la ruta: " + e.getMessage(), e);
             }
 
-            rutaRepository.update(ruta);
-
-        } catch (Exception e) {
-            grafo.modificarRuta(
-                    rutaAnterior.getOrigenId(),
-                    rutaAnterior.getDestinoId(),
-                    rutaAnterior.getTiempoMin(),
-                    rutaAnterior.getDistanciaKm(),
-                    rutaAnterior.getCosto(),
-                    rutaAnterior.getTipoTransporte()
-            );
-
-            throw new IllegalArgumentException(
-                    "No se puede modificar la ruta: generaría un ciclo negativo"
-            );
+        } catch (SQLException e) {
+            throw new RuntimeException("Error de conexión: " + e.getMessage(), e);
         }
     }
 
-    public void modificarRuta(String origenId,
-                              String destinoId,
-                              Double tiempoMin,
-                              Double distanciaKm,
-                              Double costo,
-                              TipoTransporte tipoTransporte) {
-        Ruta ruta = new Ruta(origenId, destinoId, tiempoMin, distanciaKm, costo, tipoTransporte);
-        modificarRuta(ruta);
-    }
-
-    /**
-     * Remueve una conexión entre dos paradas del sistema.
-     * * @param origenId ID de origen.
-     * @param destinoId ID de destino.
-     */
     public void eliminarRuta(String origenId, String destinoId) {
-        grafo.eliminarRuta(origenId, destinoId);
-        rutaRepository.deleteById(origenId, destinoId);
+        Ruta actual = buscarRuta(origenId, destinoId);
+
+        Ruta respaldo = new Ruta(
+                actual.getOrigenId(),
+                actual.getDestinoId(),
+                actual.getTiempoMin(),
+                actual.getDistanciaKm(),
+                actual.getCosto(),
+                actual.getTipoTransporte()
+        );
+
+        try (Connection conn = DBConnection.connect()) {
+            conn.setAutoCommit(false);
+
+            try {
+                grafo.eliminarRuta(origenId, destinoId);
+                rutaRepository.deleteById(conn, origenId, destinoId);
+                conn.commit();
+
+            } catch (RuntimeException e) {
+                rollbackSilencioso(conn);
+                restaurarRutaEliminada(respaldo);
+                throw e;
+            } catch (Exception e) {
+                rollbackSilencioso(conn);
+                restaurarRutaEliminada(respaldo);
+
+                throw new RuntimeException("Error al eliminar la ruta: " + e.getMessage(), e);
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error de conexión: " + e.getMessage(), e);
+        }
     }
 
     public List<Ruta> listarRutas() {
@@ -308,11 +362,7 @@ public class CityGraphService {
      * {@code null} si no existe una conexión directa entre ambos puntos.
      */
     private Ruta buscarRuta(String origenId, String destinoId) {
-        return listarRutas().stream()
-                .filter(r -> r.getOrigenId().equals(origenId)
-                        && r.getDestinoId().equals(destinoId))
-                .findFirst()
-                .orElse(null);
+        return grafo.obtenerRuta(origenId, destinoId);
     }
 
     /**
@@ -320,8 +370,12 @@ public class CityGraphService {
      * * @return {@code true} si existe al menos una arista con costo < 0.
      */
     private boolean tieneCostosNegativos() {
-        return listarRutas().stream()
-                .anyMatch(r -> r.getCosto() < 0);
+        for (Parada p : grafo.listarParadas()) {
+            for (Ruta r : grafo.vecinosDe(p.getId())) {
+                if (r.getCosto() < 0) return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -329,13 +383,41 @@ public class CityGraphService {
      * peso total sea negativo, lo cual invalidaría los cálculos de optimización.
      */
     private void validarSinCiclosNegativos() {
-        for (Parada p : listarParadas()) {
-            BellmanFord.calcular(
-                    grafo,
-                    p.getId(),
-                    p.getId(),
-                    CriterioOptimizacion.COSTO
+        BellmanFord.validarSinCicloNegativo(grafo);
+    }
+
+    private void rollbackSilencioso(Connection conn) {
+        try {
+            conn.rollback();
+        } catch (SQLException ignored) {
+        }
+    }
+
+    private void rollbackAgregarRutaMemoria(Ruta ruta) {
+        try {
+            grafo.eliminarRuta(ruta.getOrigenId(), ruta.getDestinoId());
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+    private void restaurarRutaEnMemoria(Ruta respaldo) {
+        try {
+            grafo.modificarRuta(
+                    respaldo.getOrigenId(),
+                    respaldo.getDestinoId(),
+                    respaldo.getTiempoMin(),
+                    respaldo.getDistanciaKm(),
+                    respaldo.getCosto(),
+                    respaldo.getTipoTransporte()
             );
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+    private void restaurarRutaEliminada(Ruta respaldo) {
+        try {
+            grafo.agregarRuta(respaldo);
+        } catch (RuntimeException ignored) {
         }
     }
 }

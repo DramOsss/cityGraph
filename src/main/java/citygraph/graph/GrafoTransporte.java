@@ -133,7 +133,7 @@ public class GrafoTransporte {
     public void modificarRuta(String origenId, String destinoId,
                               Double tiempoMin, Double distanciaKm, Double costo,
                               TipoTransporte tipoTransporte) {
-        Ruta ruta = buscarRuta(origenId, destinoId);
+        Ruta ruta = obtenerRuta(origenId, destinoId);
 
         if (tiempoMin != null) ruta.setTiempoMin(tiempoMin);
         if (distanciaKm != null) ruta.setDistanciaKm(distanciaKm);
@@ -168,16 +168,7 @@ public class GrafoTransporte {
         return Collections.unmodifiableList(adyacencia.get(origenId));
     }
 
-    /**
-     * Verifica la existencia de una arista entre dos nodos.
-     * * @param origenId ID de origen.
-     * @param destinoId ID de destino.
-     * @return true si existe una ruta directa, false en caso contrario.
-     */
-    public boolean existeArista(String origenId, String destinoId) {
-        if (!paradas.containsKey(origenId) || !paradas.containsKey(destinoId)) return false;
-        return adyacencia.get(origenId).stream().anyMatch(r -> r.getDestinoId().equals(destinoId));
-    }
+
 
     /**
      * @return El número total de nodos (paradas) en el grafo.
@@ -207,17 +198,7 @@ public class GrafoTransporte {
         if (!paradas.containsKey(id)) throw new ParadaNoExisteException(id);
     }
 
-    /**
-     * Localiza una conexión específica (arista) entre dos paradas dentro del grafo.
-     * * Este método realiza una validación previa de los nodos y recorre la lista
-     * de adyacencia del origen para encontrar el destino solicitado.
-     * * @param origenId Identificador de la parada donde inicia la ruta.
-     * @param destinoId Identificador de la parada donde finaliza la ruta.
-     * @return El objeto {@code Ruta} que conecta ambas paradas.
-     * @throws ParadaNoExisteException Si alguno de los nodos no está en el grafo.
-     * @throws RutaNoExisteException Si no existe una arista directa entre los nodos.
-     */
-    private Ruta buscarRuta(String origenId, String destinoId) {
+    public Ruta obtenerRuta(String origenId, String destinoId) {
         validarParadaExiste(origenId);
         validarParadaExiste(destinoId);
 
@@ -227,10 +208,7 @@ public class GrafoTransporte {
                 .orElseThrow(() -> new RutaNoExisteException(origenId, destinoId));
     }
 
-    /**
-     * Reinicia el grafo eliminando todas las paradas y rutas,
-     * dejando la estructura de datos vacía.
-     */
+
     public void limpiar() {
         this.paradas.clear();
         this.adyacencia.clear();

@@ -1,7 +1,7 @@
 package citygraph.repository;
 
 import citygraph.model.Ruta;
-
+import java.sql.Connection;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,20 +34,7 @@ public interface RutaRepository {
      * si no existe una conexión directa entre ambos nodos.
      */
     Optional<Ruta> findById(String origenId, String destinoId);
-    /**
-     * Registra una nueva conexión dirigida en el medio de almacenamiento persistente.
-     * * @param ruta El objeto {@code Ruta} con los datos de origen, destino y métricas.
-     */
-    void save(Ruta ruta);
-    /**
-     * Actualiza los atributos de una ruta existente (pesos y tipo de transporte).
-     * * @param ruta La instancia con los datos modificados para el tramo correspondiente.
-     */
-    void update(Ruta ruta);
-    /**
-     * Elimina de forma permanente la conexión entre dos paradas del repositorio.
-     * * @param origenId Identificador de la parada de origen.
-     * @param destinoId Identificador de la parada de destino.
-     */
-    void deleteById(String origenId, String destinoId);
+    void save(Connection conn, Ruta ruta);
+    void update(Connection conn, Ruta ruta);
+    void deleteById(Connection conn, String origenId, String destinoId);
 }

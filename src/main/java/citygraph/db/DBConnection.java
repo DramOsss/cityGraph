@@ -12,21 +12,14 @@ import java.sql.SQLException;
  */
 public class DBConnection {
 
-    /**
-     * URL de conexión JDBC que especifica el protocolo, el host, el puerto
-     * y el nombre de la base de datos del sistema de transporte.
-     */
-    private static final String URL = "jdbc:postgresql://localhost:5432/cityGraphDb";
+    private static final String URL =
+            System.getenv().getOrDefault("CITYGRAPH_DB_URL", "jdbc:postgresql://localhost:5432/cityGraphDb");
 
-    /**
-     * Identificador del usuario con privilegios de acceso al motor de base de datos.
-     */
-    private static final String USER = "postgres";
+    private static final String USER =
+            System.getenv().getOrDefault("CITYGRAPH_DB_USER", "postgres");
 
-    /**
-     * Credencial de seguridad para la autenticación en el servidor PostgreSQL.
-     */
-    private static final String PASSWORD = "12345";
+    private static final String PASSWORD =
+            System.getenv().getOrDefault("CITYGRAPH_DB_PASSWORD", "12345");
 
     /**
      * Bloque estático de inicialización.
