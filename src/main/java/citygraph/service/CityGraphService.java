@@ -83,23 +83,63 @@ public class CityGraphService {
 
     public void agregarRuta(Ruta ruta) {
         Objects.requireNonNull(ruta, "Ruta no puede ser null");
-        rutaRepository.save(ruta);
-        grafo.agregarRuta(ruta);
+
+        grafo.agregarRuta(ruta); // agregar temporalmente para validar el estado final
+
+        try {
+            if (tieneCostosNegativos()) {
+                validarSinCiclosNegativos();
+            }
+
+            rutaRepository.save(ruta);
+
+        } catch (Exception e) {
+            grafo.eliminarRuta(ruta.getOrigenId(), ruta.getDestinoId());
+
+            throw new IllegalArgumentException(
+                    "No se puede agregar la ruta: generaría un ciclo negativo"
+            );
+        }
     }
 
     public void modificarRuta(Ruta ruta) {
         Objects.requireNonNull(ruta, "Ruta no puede ser null");
 
-        grafo.modificarRuta(
-                ruta.getOrigenId(),
-                ruta.getDestinoId(),
-                ruta.getTiempoMin(),
-                ruta.getDistanciaKm(),
-                ruta.getCosto(),
-                ruta.getTipoTransporte()
-        );
+        Ruta rutaAnterior = buscarRuta(ruta.getOrigenId(), ruta.getDestinoId());
+        if (rutaAnterior == null) {
+            throw new IllegalArgumentException("La ruta no existe");
+        }
 
-        rutaRepository.update(ruta);
+        try {
+            grafo.modificarRuta(
+                    ruta.getOrigenId(),
+                    ruta.getDestinoId(),
+                    ruta.getTiempoMin(),
+                    ruta.getDistanciaKm(),
+                    ruta.getCosto(),
+                    ruta.getTipoTransporte()
+            );
+
+            if (tieneCostosNegativos()) {
+                validarSinCiclosNegativos();
+            }
+
+            rutaRepository.update(ruta);
+
+        } catch (Exception e) {
+            grafo.modificarRuta(
+                    rutaAnterior.getOrigenId(),
+                    rutaAnterior.getDestinoId(),
+                    rutaAnterior.getTiempoMin(),
+                    rutaAnterior.getDistanciaKm(),
+                    rutaAnterior.getCosto(),
+                    rutaAnterior.getTipoTransporte()
+            );
+
+            throw new IllegalArgumentException(
+                    "No se puede modificar la ruta: generaría un ciclo negativo"
+            );
+        }
     }
 
     public void modificarRuta(String origenId,
@@ -143,11 +183,16 @@ public class CityGraphService {
     public ResultadoRuta calcularRuta(String origenId,
                                       String destinoId,
                                       CriterioOptimizacion criterio) {
+
         Objects.requireNonNull(origenId, "origenId no puede ser null");
         Objects.requireNonNull(destinoId, "destinoId no puede ser null");
         Objects.requireNonNull(criterio, "criterio no puede ser null");
 
-        if (hayPesosNegativos(criterio)) {
+        if (criterio == CriterioOptimizacion.TRANSBORDOS) {
+            return Dijkstra.calcular(grafo, origenId, destinoId, criterio);
+        }
+
+        if (criterio == CriterioOptimizacion.COSTO && hayPesosNegativos(criterio)) {
             return BellmanFord.calcular(grafo, origenId, destinoId, criterio);
         }
 
@@ -168,5 +213,41 @@ public class CityGraphService {
             }
         }
         return false;
+    }
+
+    public String nombreAlgoritmoPara(CriterioOptimizacion criterio) {
+        if (criterio == CriterioOptimizacion.COSTO && hayPesosNegativos(criterio)) {
+            return "Bellman-Ford";
+        }
+
+        return "Dijkstra";
+    }
+
+    // =========================
+    // VALIDACIONES INTERNAS
+    // =========================
+
+    private Ruta buscarRuta(String origenId, String destinoId) {
+        return listarRutas().stream()
+                .filter(r -> r.getOrigenId().equals(origenId)
+                        && r.getDestinoId().equals(destinoId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean tieneCostosNegativos() {
+        return listarRutas().stream()
+                .anyMatch(r -> r.getCosto() < 0);
+    }
+
+    private void validarSinCiclosNegativos() {
+        for (Parada p : listarParadas()) {
+            BellmanFord.calcular(
+                    grafo,
+                    p.getId(),
+                    p.getId(),
+                    CriterioOptimizacion.COSTO
+            );
+        }
     }
 }

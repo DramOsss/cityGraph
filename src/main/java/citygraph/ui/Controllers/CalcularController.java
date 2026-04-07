@@ -68,6 +68,8 @@ public class CalcularController implements StateAware {
         Parada o = cmbOrigen.getValue();
         Parada d = cmbDestino.getValue();
         CriterioOptimizacion criterio = cmbCriterio.getValue();
+        String algoritmo = service.nombreAlgoritmoPara(criterio);
+
 
         if (o == null || d == null) {
             txtResultado.setText("Selecciona origen y destino.");
@@ -106,6 +108,7 @@ public class CalcularController implements StateAware {
             sb.append("- Distancia (km): ").append(res.getDistanciaTotal()).append("\n");
             sb.append("- Costo: ").append(res.getCostoTotal()).append("\n");
             sb.append("- Transbordos: ").append(res.getTransbordosTotal()).append("\n");
+            sb.append("- Algoritmo usado: ").append(algoritmo).append("\n\n");
 
             txtResultado.setText(sb.toString());
 
