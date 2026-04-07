@@ -69,6 +69,17 @@ public class Dijkstra {
         return calcularPorTransbordos(grafo, origenId, destinoId);
     }
 
+    /**
+     * Realiza el cálculo estándar de la ruta más corta basado en pesos acumulativos.
+     * * Implementa el algoritmo de Dijkstra para optimizar el trayecto según el tiempo
+     * de viaje, la distancia física o el costo del pasaje. Utiliza una cola de
+     * prioridad para garantizar la eficiencia en redes de transporte densas.
+     * * @param grafo El grafo dirigido que representa la red de transporte.
+     * @param origenId Identificador único de la parada de inicio.
+     * @param destinoId Identificador único de la parada de llegada.
+     * @param criterio El factor de peso a minimizar (TIEMPO, DISTANCIA o COSTO).
+     * @return Un objeto ResultadoRuta con el camino detallado y las métricas acumuladas.
+     */
     private static ResultadoRuta calcularNormal(GrafoTransporte grafo,
                                                 String origenId,
                                                 String destinoId,
@@ -117,6 +128,16 @@ public class Dijkstra {
         return construirResultado(camino, tramos, dist.get(destinoId));
     }
 
+    /**
+     * Calcula la ruta que minimiza la cantidad total de transbordos entre dos paradas.
+     * * Utiliza una variante de búsqueda por estados donde el peso (costo 1.0) se aplica
+     * únicamente cuando el tipo de transporte de una ruta es diferente al del tramo anterior.
+     * Permite al usuario encontrar la opción de viaje con menos interrupciones.
+     * * @param grafo El grafo de la ciudad con sus paradas y rutas.
+     * @param origenId ID de la parada de origen.
+     * @param destinoId ID de la parada de destino.
+     * @return ResultadoRuta con el trayecto que ofrece el menor número de cambios de transporte.
+     */
     private static ResultadoRuta calcularPorTransbordos(GrafoTransporte grafo,
                                                         String origenId,
                                                         String destinoId) {
@@ -198,6 +219,13 @@ public class Dijkstra {
         return construirResultado(camino, tramos, mejor);
     }
 
+    /**
+     * Obtiene el valor numérico del peso de una ruta según el criterio seleccionado.
+     * * @param r La instancia de la ruta a evaluar.
+     * @param criterio El criterio de optimización (Tiempo, Distancia o Costo).
+     * @return El peso correspondiente (minutos, kilómetros o valor monetario).
+     * @throws IllegalArgumentException Si se intenta procesar el criterio de TRANSBORDOS.
+     */
     private static double pesoNormal(Ruta r, CriterioOptimizacion criterio) {
         return switch (criterio) {
             case TIEMPO -> r.getTiempoMin();
@@ -207,6 +235,16 @@ public class Dijkstra {
         };
     }
 
+    /**
+     * Construye y consolida el objeto de resultado final con todas las métricas del viaje.
+     * * Agrupa la información del camino de paradas, los tramos físicos recorridos y
+     * realiza la sumatoria final de tiempos, distancias y costos para su
+     * presentación en la interfaz de usuario.
+     * * @param camino Lista ordenada de los nombres de las paradas.
+     * @param tramos Lista de objetos Ruta que forman el trayecto completo.
+     * @param pesoOptimo El valor del peso total minimizado por el algoritmo.
+     * @return Un objeto ResultadoRuta completo y listo para ser visualizado.
+     */
     private static ResultadoRuta construirResultado(List<String> camino,
                                                     List<Ruta> tramos,
                                                     double pesoOptimo) {
