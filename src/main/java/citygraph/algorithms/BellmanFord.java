@@ -97,14 +97,12 @@ public class BellmanFord {
     }
 
     private static double pesoSegunCriterio(Ruta r, CriterioOptimizacion criterio) {
-        return switch (criterio) {
-            case TIEMPO -> r.getTiempoMin();
-            case DISTANCIA -> r.getDistanciaKm();
-            case COSTO -> r.getCosto();
-            case TRANSBORDOS -> throw new UnsupportedOperationException(
-                    "TRANSBORDOS no está soportado en este algoritmo."
+        if (criterio != CriterioOptimizacion.COSTO) {
+            throw new IllegalArgumentException(
+                    "Bellman-Ford solo se usa para COSTO en este sistema"
             );
-        };
+        }
+        return r.getCosto();
     }
 
     private static List<String> reconstruirCamino(Map<String, String> prev,

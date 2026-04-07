@@ -4,23 +4,48 @@ import citygraph.graph.GrafoTransporte;
 import citygraph.model.CriterioOptimizacion;
 import citygraph.model.ResultadoRuta;
 import citygraph.model.Ruta;
+import citygraph.model.TipoTransporte;
 
 import java.util.*;
 
 public class Dijkstra {
 
-    private static class NodoDist implements Comparable<NodoDist> {
+    private static class Estado implements Comparable<Estado> {
         String id;
         double dist;
+        TipoTransporte ultimoTipo;
 
-        NodoDist(String id, double dist) {
+        Estado(String id, double dist, TipoTransporte ultimoTipo) {
             this.id = id;
             this.dist = dist;
+            this.ultimoTipo = ultimoTipo;
         }
 
         @Override
-        public int compareTo(NodoDist o) {
+        public int compareTo(Estado o) {
             return Double.compare(this.dist, o.dist);
+        }
+    }
+
+    private static class Key {
+        String id;
+        TipoTransporte tipo;
+
+        Key(String id, TipoTransporte tipo) {
+            this.id = id;
+            this.tipo = tipo;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Key key)) return false;
+            return Objects.equals(id, key.id) && tipo == key.tipo;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(id, tipo);
         }
     }
 
@@ -34,22 +59,32 @@ public class Dijkstra {
         Objects.requireNonNull(destinoId, "destinoId null");
         Objects.requireNonNull(criterio, "criterio null");
 
-
-
         grafo.obtenerParada(origenId);
         grafo.obtenerParada(destinoId);
+
+        if (criterio != CriterioOptimizacion.TRANSBORDOS) {
+            return calcularNormal(grafo, origenId, destinoId, criterio);
+        }
+
+        return calcularPorTransbordos(grafo, origenId, destinoId);
+    }
+
+    private static ResultadoRuta calcularNormal(GrafoTransporte grafo,
+                                                String origenId,
+                                                String destinoId,
+                                                CriterioOptimizacion criterio) {
 
         Map<String, Double> dist = new HashMap<>();
         Map<String, String> prev = new HashMap<>();
         Set<String> visitado = new HashSet<>();
 
-        PriorityQueue<NodoDist> pq = new PriorityQueue<>();
+        PriorityQueue<Estado> pq = new PriorityQueue<>();
 
         dist.put(origenId, 0.0);
-        pq.add(new NodoDist(origenId, 0.0));
+        pq.add(new Estado(origenId, 0.0, null));
 
         while (!pq.isEmpty()) {
-            NodoDist actual = pq.poll();
+            Estado actual = pq.poll();
 
             if (visitado.contains(actual.id)) continue;
             visitado.add(actual.id);
@@ -60,13 +95,13 @@ public class Dijkstra {
                 String v = r.getDestinoId();
                 if (visitado.contains(v)) continue;
 
-                double w = peso(r, criterio);
+                double w = pesoNormal(r, criterio);
                 double nueva = dist.get(actual.id) + w;
 
                 if (nueva < dist.getOrDefault(v, Double.POSITIVE_INFINITY)) {
                     dist.put(v, nueva);
                     prev.put(v, actual.id);
-                    pq.add(new NodoDist(v, nueva));
+                    pq.add(new Estado(v, nueva, r.getTipoTransporte()));
                 }
             }
         }
@@ -79,6 +114,102 @@ public class Dijkstra {
         List<String> camino = reconstruirCamino(prev, origenId, destinoId);
         List<Ruta> tramos = reconstruirTramos(grafo, camino);
 
+        return construirResultado(camino, tramos, dist.get(destinoId));
+    }
+
+    private static ResultadoRuta calcularPorTransbordos(GrafoTransporte grafo,
+                                                        String origenId,
+                                                        String destinoId) {
+
+        Map<Key, Double> dist = new HashMap<>();
+        Map<Key, Key> prevEstado = new HashMap<>();
+        Map<Key, Ruta> prevRuta = new HashMap<>();
+        PriorityQueue<Estado> pq = new PriorityQueue<>();
+
+        Key inicio = new Key(origenId, null);
+        dist.put(inicio, 0.0);
+        pq.add(new Estado(origenId, 0.0, null));
+
+        while (!pq.isEmpty()) {
+            Estado actual = pq.poll();
+            Key keyActual = new Key(actual.id, actual.ultimoTipo);
+
+            double distActual = dist.getOrDefault(keyActual, Double.POSITIVE_INFINITY);
+            if (actual.dist > distActual) continue;
+
+            for (Ruta r : grafo.vecinosDe(actual.id)) {
+                TipoTransporte nuevoTipo = r.getTipoTransporte();
+                String vecino = r.getDestinoId();
+
+                double costoTransbordo;
+                if (actual.ultimoTipo == null) {
+                    costoTransbordo = 0.0;
+                } else if (actual.ultimoTipo == nuevoTipo) {
+                    costoTransbordo = 0.0;
+                } else {
+                    costoTransbordo = 1.0;
+                }
+
+                double nuevaDist = actual.dist + costoTransbordo;
+                Key keyVecino = new Key(vecino, nuevoTipo);
+
+                if (nuevaDist < dist.getOrDefault(keyVecino, Double.POSITIVE_INFINITY)) {
+                    dist.put(keyVecino, nuevaDist);
+                    prevEstado.put(keyVecino, keyActual);
+                    prevRuta.put(keyVecino, r);
+                    pq.add(new Estado(vecino, nuevaDist, nuevoTipo));
+                }
+            }
+        }
+
+        Key mejorFinal = null;
+        double mejor = Double.POSITIVE_INFINITY;
+
+        for (Map.Entry<Key, Double> e : dist.entrySet()) {
+            if (e.getKey().id.equals(destinoId) && e.getValue() < mejor) {
+                mejor = e.getValue();
+                mejorFinal = e.getKey();
+            }
+        }
+
+        if (mejorFinal == null) {
+            return new ResultadoRuta(List.of(), false,
+                    Double.POSITIVE_INFINITY, 0, 0, 0, 0);
+        }
+
+        List<Ruta> tramos = new ArrayList<>();
+        Key actual = mejorFinal;
+
+        while (actual != null && !actual.id.equals(origenId)) {
+            Ruta ruta = prevRuta.get(actual);
+            if (ruta == null) break;
+            tramos.add(ruta);
+            actual = prevEstado.get(actual);
+        }
+
+        Collections.reverse(tramos);
+
+        List<String> camino = new ArrayList<>();
+        camino.add(origenId);
+        for (Ruta r : tramos) {
+            camino.add(r.getDestinoId());
+        }
+
+        return construirResultado(camino, tramos, mejor);
+    }
+
+    private static double pesoNormal(Ruta r, CriterioOptimizacion criterio) {
+        return switch (criterio) {
+            case TIEMPO -> r.getTiempoMin();
+            case DISTANCIA -> r.getDistanciaKm();
+            case COSTO -> r.getCosto();
+            case TRANSBORDOS -> throw new IllegalArgumentException("Use calcularPorTransbordos");
+        };
+    }
+
+    private static ResultadoRuta construirResultado(List<String> camino,
+                                                    List<Ruta> tramos,
+                                                    double pesoOptimo) {
         double tiempo = 0;
         double distancia = 0;
         double costo = 0;
@@ -94,23 +225,12 @@ public class Dijkstra {
         return new ResultadoRuta(
                 camino,
                 true,
-                dist.get(destinoId),
+                pesoOptimo,
                 tiempo,
                 distancia,
                 costo,
                 transbordos
         );
-    }
-
-    private static double peso(Ruta r, CriterioOptimizacion criterio) {
-        return switch (criterio) {
-            case TIEMPO -> r.getTiempoMin();
-            case DISTANCIA -> r.getDistanciaKm();
-            case COSTO -> r.getCosto();
-            case TRANSBORDOS -> throw new UnsupportedOperationException(
-                    "TRANSBORDOS no está soportado en este algoritmo."
-            );
-        };
     }
 
     private static int calcularTransbordos(List<Ruta> tramos) {
@@ -158,6 +278,4 @@ public class Dijkstra {
 
         return tramos;
     }
-
-
 }
