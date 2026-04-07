@@ -260,12 +260,24 @@ public class RutasController implements StateAware {
         }
     }
 
+    /**
+     * Prepara la interfaz para la creación de una nueva conexión entre paradas.
+     * * Invoca la limpieza de los campos de entrada y notifica al usuario que
+     * el sistema se encuentra en modo de inserción, permitiendo nuevamente
+     * la selección de los puntos de origen y destino.
+     */
     @FXML
     private void onNuevaRuta() {
         limpiarInputsYSeleccion();
         msg("Modo agregar: selecciona origen/destino, tipo y completa los campos.");
     }
 
+    /**
+     * Sincroniza los selectores de origen y destino con las paradas registradas.
+     * * Actualiza los {@link ComboBox} con la lista ordenada de paradas obtenida
+     * del servicio y establece selecciones por defecto (generalmente los dos
+     * primeros elementos) para agilizar la entrada de datos.
+     */
     private void refrescarCombos() {
         List<Parada> paradas = service.listarParadasOrdenadas();
 
@@ -278,10 +290,22 @@ public class RutasController implements StateAware {
         }
     }
 
+    /**
+     * Actualiza el componente visual de la lista de rutas.
+     * * Consulta al {@link CityGraphService} para obtener el listado completo
+     * de aristas ordenadas y refresca el {@code ListView} sincronizándolo con
+     * el estado actual del grafo.
+     */
     private void refrescarListaRutas() {
         lstRutas.setItems(FXCollections.observableArrayList(service.listarRutasOrdenadas()));
     }
 
+    /**
+     * Restablece los componentes de entrada de datos a su estado inicial.
+     * * Limpia los campos de texto numéricos, devuelve el selector de transporte
+     * a su valor predeterminado (BUS) y habilita la edición de la clave primaria
+     * (origen/destino) para permitir el registro de una nueva ruta.
+     */
     private void limpiarInputsYSeleccion() {
         txtTiempo.clear();
         txtDistancia.clear();

@@ -156,15 +156,33 @@ public class ParadasController implements StateAware {
     }
 
     @FXML
+    /*
+     * Prepara la interfaz para la creación de una nueva parada.
+     * * Resetea el formulario de entrada y notifica al usuario que el sistema
+     * se encuentra en modo de inserción, permitiendo la definición de un nuevo
+     * identificador único.
+     */
     private void onNuevaParada() {
         limpiarInputsYSeleccion();
         msg("Modo agregar: completa los campos.");
     }
 
+    /**
+     * Sincroniza el componente visual de la lista con los datos del servicio.
+     * * Consulta al {@link CityGraphService} para obtener la colección actualizada
+     * de paradas ordenadas y refresca el {@code ListView} mediante un
+     * {@link javafx.collections.ObservableList}.
+     */
     private void refrescarLista() {
         lstParadas.setItems(FXCollections.observableArrayList(service.listarParadasOrdenadas()));
     }
 
+    /**
+     * Restablece los componentes de entrada de datos a su estado inicial.
+     * * Limpia los campos de texto de ID y Nombre, remueve cualquier selección
+     * activa en la lista y asegura que el campo de identificador sea editable
+     * para permitir nuevas entradas.
+     */
     private void limpiarInputsYSeleccion() {
         txtId.clear();
         txtNombre.clear();

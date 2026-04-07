@@ -287,6 +287,14 @@ public class CalcularController implements StateAware {
         }
     }
 
+    /**
+     * Calcula las coordenadas cartesianas de cada parada para su visualización.
+     * * Las posiciones se distribuyen uniformemente en un círculo centrado en el panel
+     * para maximizar la legibilidad de las conexiones. En caso de existir una sola parada,
+     * esta se posiciona en el centro geométrico del mapa.
+     * * @param paradas Lista de paradas a posicionar.
+     * @return Un mapa que vincula el ID de cada parada con su objeto {@link Punto} correspondiente.
+     */
     private Map<String, Punto> calcularPuntos(List<Parada> paradas) {
         Map<String, Punto> puntos = new HashMap<>();
 
@@ -328,6 +336,18 @@ public class CalcularController implements StateAware {
                 .orElse(null);
     }
 
+    /**
+     * Crea un objeto {@link Line} que representa una conexión dirigida entre dos puntos.
+     * *El metodo aplica un desplazamiento (offset) lateral basado en el orden alfabético
+     * de los IDs de las paradas. Esto permite que las rutas de ida y vuelta entre los
+     * mismos dos nodos no se solapen visualmente.
+     * * @param ruta Entidad que contiene la información de la conexión.
+     * @param p1 Coordenadas del punto de origen.
+     * @param p2 Coordenadas del punto de destino.
+     * @param color Color de la línea (gris para base, verde para ruta óptima).
+     * @param grosor Ancho de la línea en píxeles.
+     * @return Una instancia de {@link Line} configurada y desplazada.
+     */
     private Line crearLineaDirigida(Ruta ruta, Punto p1, Punto p2, Color color, double grosor) {
         double dx = p2.x - p1.x;
         double dy = p2.y - p1.y;
@@ -364,6 +384,15 @@ public class CalcularController implements StateAware {
         return linea;
     }
 
+    /**
+     * Dibuja la punta de una flecha al final de una conexión para indicar la dirección del flujo.
+     * * @param x1 Coordenada X inicial.
+     * @param y1 Coordenada Y inicial.
+     * @param x2 Coordenada X final (donde se sitúa la punta).
+     * @param y2 Coordenada Y final (donde se sitúa la punta).
+     * @param color Color de la flecha.
+     * @param grosor Grosor de las líneas que componen la punta.
+     */
     private void agregarFlecha(double x1, double y1, double x2, double y2, Color color, double grosor) {
         double phi = Math.toRadians(25);
         double barb = 10;
