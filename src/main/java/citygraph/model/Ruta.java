@@ -1,5 +1,12 @@
 package citygraph.model;
 
+/**
+ * Clase que representa una conexión dirigida (arista) entre dos paradas en el grafo.
+ * * Define las propiedades físicas y económicas de un tramo de transporte, incluyendo
+ * el tiempo estimado, la distancia, el costo del pasaje y el medio utilizado.
+ * La clase asegura la validez de los datos mediante restricciones de no negatividad
+ * y normalización de identificadores.
+ */
 public class Ruta {
 
     private final String origenId;
@@ -10,6 +17,16 @@ public class Ruta {
     private double costo;
     private TipoTransporte tipoTransporte;
 
+    /**
+     * Constructor principal para inicializar un tramo de transporte con validaciones.
+     * * @param origenId Identificador de origen (se normaliza a mayúsculas).
+     * @param destinoId Identificador de destino (se normaliza a mayúsculas).
+     * @param tiempoMin Tiempo de viaje, no puede ser negativo.
+     * @param distanciaKm Distancia del tramo, no puede ser negativa.
+     * @param costo Valor del pasaje.
+     * @param tipoTransporte Categoría del vehículo de transporte.
+     * @throws IllegalArgumentException Si los IDs son inválidos, los pesos son negativos o el tipo es nulo.
+     */
     public Ruta(String origenId, String destinoId,
                 double tiempoMin, double distanciaKm, double costo,
                 TipoTransporte tipoTransporte) {
@@ -41,20 +58,35 @@ public class Ruta {
         this.tiempoMin = tiempoMin;
     }
 
+    /**
+     * Actualiza la distancia física del tramo.
+     * * @param distanciaKm Nueva distancia en kilómetros (debe ser >= 0).
+     */
     public void setDistanciaKm(double distanciaKm) {
         if (distanciaKm < 0) throw new IllegalArgumentException("distanciaKm no puede ser negativa");
         this.distanciaKm = distanciaKm;
     }
 
+    /**
+     * Actualiza el costo de la tarifa.
+     * * @param costo Nuevo valor monetario.
+     */
     public void setCosto(double costo) {
         this.costo = costo;
     }
 
+    /**
+     * Cambia el medio de transporte del tramo.
+     * * @param tipoTransporte Nueva categoría de transporte.
+     */
     public void setTipoTransporte(TipoTransporte tipoTransporte) {
         if (tipoTransporte == null) throw new IllegalArgumentException("tipoTransporte no puede ser null");
         this.tipoTransporte = tipoTransporte;
     }
 
+    /**
+     * @return Representación textual de la ruta con sus métricas y tipo de transporte.
+     */
     @Override
     public String toString() {
         return origenId + " -> " + destinoId +
