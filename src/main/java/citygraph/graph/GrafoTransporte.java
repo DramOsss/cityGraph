@@ -198,6 +198,17 @@ public class GrafoTransporte {
         if (!paradas.containsKey(id)) throw new ParadaNoExisteException(id);
     }
 
+    /**
+     * Busca y devuelve una conexión específica entre dos paradas del grafo.
+     * * Utiliza la lista de adyacencia del origen para localizar el tramo que
+     * conecta con el destino solicitado. Es una operación crítica para la
+     * obtención de métricas detalladas tras el cálculo de una ruta.
+     * * @param origenId Identificador de la parada de salida.
+     * @param destinoId Identificador de la parada de llegada.
+     * @return El objeto {@link Ruta} que conecta ambos puntos.
+     * @throws RutaNoExisteException Si no se encuentra una arista directa
+     * entre los identificadores proporcionados.
+     */
     public Ruta obtenerRuta(String origenId, String destinoId) {
         validarParadaExiste(origenId);
         validarParadaExiste(destinoId);
@@ -208,7 +219,12 @@ public class GrafoTransporte {
                 .orElseThrow(() -> new RutaNoExisteException(origenId, destinoId));
     }
 
-
+    /**
+     * Restablece el grafo a su estado inicial, eliminando todos los datos en memoria.
+     * * Limpia tanto la colección de paradas (vértices) como el mapa de adyacencia
+     * (aristas). Este método es fundamental para procesos de recarga completa
+     * de datos o para pruebas unitarias que requieren un entorno limpio.
+     */
     public void limpiar() {
         this.paradas.clear();
         this.adyacencia.clear();

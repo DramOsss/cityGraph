@@ -257,7 +257,12 @@ public class CityGraphService {
             throw new RuntimeException("Error de conexión: " + e.getMessage(), e);
         }
     }
-
+    /**
+     * Devuelve una lista con todas las conexiones registradas en el sistema.
+     * * Recorre cada parada del grafo y recopila sus rutas adyacentes para
+     * ofrecer una vista global de la red de transporte.
+     * * @return Una lista que contiene todos los objetos {@link Ruta} del grafo.
+     */
     public List<Ruta> listarRutas() {
         List<Ruta> todas = new ArrayList<>();
         for (Parada p : grafo.listarParadas()) {
@@ -265,7 +270,12 @@ public class CityGraphService {
         }
         return todas;
     }
-
+    /**
+     * Devuelve una lista con todas las conexiones registradas en el sistema.
+     * * Recorre cada parada del grafo y recopila sus rutas adyacentes para
+     * ofrecer una vista global de la red de transporte.
+     * * @return Una lista que contiene todos los objetos {@link Ruta} del grafo.
+     */
     public List<Ruta> listarRutasOrdenadas() {
         return listarRutas().stream()
                 .sorted(Comparator.comparing(Ruta::getOrigenId)
@@ -385,21 +395,37 @@ public class CityGraphService {
     private void validarSinCiclosNegativos() {
         BellmanFord.validarSinCicloNegativo(grafo);
     }
-
+    /**
+     * Ejecuta una reversión de la transacción en la base de datos sin lanzar excepciones.
+     * * Se utiliza durante el manejo de errores para asegurar que, si una operación
+     * falla, la base de datos no quede en un estado parcial o inconsistente.
+     * * @param conn La conexión JDBC activa sobre la cual realizar el rollback.
+     */
     private void rollbackSilencioso(Connection conn) {
         try {
             conn.rollback();
         } catch (SQLException ignored) {
         }
     }
-
+    /**
+     * Revierte la inserción de una ruta en la memoria RAM tras un fallo en la persistencia.
+     * * Asegura que si la escritura en el disco falla, el {@link GrafoTransporte}
+     * no conserve una ruta que no existe realmente en la base de datos.
+     * * @param ruta La instancia de la ruta que debe ser removida del grafo.
+     */
     private void rollbackAgregarRutaMemoria(Ruta ruta) {
         try {
             grafo.eliminarRuta(ruta.getOrigenId(), ruta.getDestinoId());
         } catch (RuntimeException ignored) {
         }
     }
-
+    /**
+     * Restaura el estado previo de una ruta en el grafo tras una modificación fallida.
+     * * Si una actualización de datos es rechazada (por ejemplo, por generar un
+     * ciclo negativo), este método devuelve los valores originales a la
+     * arista en memoria.
+     * * @param respaldo Objeto {@link Ruta} con los valores previos a la edición.
+     */
     private void restaurarRutaEnMemoria(Ruta respaldo) {
         try {
             grafo.modificarRuta(
@@ -413,7 +439,13 @@ public class CityGraphService {
         } catch (RuntimeException ignored) {
         }
     }
-
+    /**
+     * Reinserta en el grafo una ruta que fue eliminada durante una transacción fallida.
+     * * Si el proceso de borrado en la base de datos no puede completarse, este
+     * método garantiza que la ruta vuelva a estar disponible en la estructura
+     * de datos activa.
+     * * @param respaldo La ruta que debe ser reintegrada al sistema.
+     */
     private void restaurarRutaEliminada(Ruta respaldo) {
         try {
             grafo.agregarRuta(respaldo);

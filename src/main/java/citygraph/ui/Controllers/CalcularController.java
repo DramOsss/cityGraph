@@ -85,7 +85,27 @@ public class CalcularController implements StateAware {
         dibujarMapaBase();
         txtResultado.setText("Paradas y mapa refrescados.");
     }
-
+    /**
+     * Gestiona el flujo completo de cálculo y visualización de rutas óptimas.
+     * * Este método realiza las siguientes acciones coordinadas:
+     * 1. **Validación de Entrada:** Verifica que los selectores de origen, destino
+     * y criterio contengan valores válidos y que no se intente calcular una
+     * ruta hacia el mismo punto de partida.
+     * 2. **Ejecución de Lógica:** Invoca al {@link citygraph.service.CityGraphService}
+     * para determinar el camino mínimo, permitiendo que el sistema elija
+     * automáticamente el algoritmo pertinente (Dijkstra o Bellman-Ford).
+     * 3. **Gestión de Resultados:**
+     * - Si la ruta existe: Construye un reporte detallado en el área de texto
+     * incluyendo el desglose de paradas, pesos óptimos, totales de viaje y
+     * el algoritmo utilizado.
+     * - Si la ruta no existe: Notifica al usuario y limpia las representaciones
+     * previas en el mapa.
+     * 4. **Actualización Gráfica:** Redibuja el mapa base y superpone de forma
+     * destacada la "Mejor Ruta" calculada, resaltando visualmente los nodos
+     * de inicio y fin para facilitar la orientación del usuario.
+     * * @see citygraph.model.ResultadoRuta
+     * @see citygraph.service.CityGraphService#calcularRuta
+     */
     @FXML
     private void onCalcular() {
         Parada o = cmbOrigen.getValue();
