@@ -8,11 +8,39 @@ import citygraph.model.Ruta;
 
 import java.util.*;
 
+/**
+ * Implementación del algoritmo de Bellman-Ford para la búsqueda de caminos mínimos en el grafo.
+ * * A diferencia de Dijkstra, esta implementación es capaz de gestionar aristas con pesos negativos,
+ * lo cual es fundamental cuando el criterio de optimización es el COSTO y existen bonificaciones
+ * o descuentos en la red de transporte.
+ * * El algoritmo opera realizando $V-1$ iteraciones (donde $V$ es el número de paradas) para
+ * asegurar la convergencia de las distancias mínimas, incluyendo una fase final de
+ * verificación para detectar ciclos de peso negativo.
+ */
 public class BellmanFord {
 
+    /**
+     * Constructor privado para asegurar que la clase se utilice de forma estática
+     * como una utilidad de cálculo.
+     */
     private BellmanFord() {
     }
 
+    /**
+     * Ejecuta el cálculo de la ruta óptima entre dos nodos basándose en un criterio específico.
+     * * El proceso incluye:
+     * 1. Inicialización de distancias a infinito y origen a cero.
+     * 2. Relajación de todas las aristas del grafo durante $N-1$ iteraciones.
+     * 3. Verificación de ciclos negativos (si una distancia puede seguir bajando tras $N-1$ pasos).
+     * 4. Reconstrucción del camino y cálculo de métricas totales.
+     * * @param grafo La instancia de {@link GrafoTransporte} que contiene la red.
+     * @param origenId Identificador de la parada de partida.
+     * @param destinoId Identificador de la parada de llegada.
+     * @param criterio El factor a minimizar (TIEMPO, COSTO, DISTANCIA, etc.).
+     * @return Un objeto {@link ResultadoRuta} con el camino detallado y sus costos acumulados.
+     * @throws CicloNegativoException Si se detecta un bucle de costo negativo que hace
+     * que la ruta óptima sea indefinida (tendiendo al infinito negativo).
+     */
     public static ResultadoRuta calcular(GrafoTransporte grafo,
                                          String origenId,
                                          String destinoId,
@@ -147,7 +175,14 @@ public class BellmanFord {
             }
         }
     }
-
+    /**
+     * Transforma la lista de adyacencia del grafo en una colección plana de todas las aristas.
+     * * Dado que Bellman-Ford requiere iterar sobre todas las rutas del sistema en cada
+     * paso de relajación, este método centraliza todas las conexiones de todas las
+     * paradas en una sola lista para optimizar el bucle principal del algoritmo.
+     * * @param grafo El {@link GrafoTransporte} del cual se extraerán las conexiones.
+     * @return Una lista que contiene todas las instancias de {@link Ruta} presentes en la red.
+     */
     private static List<Ruta> recopilarTodasLasRutas(GrafoTransporte grafo) {
         List<Ruta> rutas = new ArrayList<>();
         for (var parada : grafo.listarParadas()) {
@@ -155,7 +190,12 @@ public class BellmanFord {
         }
         return rutas;
     }
-
+    /**
+     * Determina el peso numérico de una arista según el criterio de optimización activo.
+     * * @param r La ruta a evaluar.
+     * @param criterio El criterio seleccionado por el usuario.
+     * @return El valor numérico (double) que el algoritmo intentará minimizar.
+     */
     private static double pesoSegunCriterio(Ruta r, CriterioOptimizacion criterio) {
         return switch (criterio) {
             case TIEMPO -> r.getTiempoMin();
@@ -164,7 +204,15 @@ public class BellmanFord {
             case TRANSBORDOS -> 1.0;
         };
     }
-
+    /**
+     * Reconstruye la secuencia de nodos que forman el camino óptimo desde el destino hacia el origen.
+     * * Utiliza el mapa de predecesores generado durante la fase de relajación para
+     * trazar la ruta de regreso y presentarla en el orden correcto de viaje.
+     * * @param prev Mapa que vincula cada nodo con su antecesor en el camino mínimo.
+     * @param origenId Nodo inicial del viaje.
+     * @param destinoId Nodo final del viaje.
+     * @return Una lista ordenada de IDs de paradas que representan el trayecto.
+     */
     private static List<String> reconstruirCamino(Map<String, String> prev,
                                                   String origenId,
                                                   String destinoId) {
@@ -184,6 +232,14 @@ public class BellmanFord {
         return camino;
     }
 
+    /**
+     * Recupera las instancias de {@link Ruta} que conectan el camino de nodos calculado.
+     * * Esto permite acceder a los metadatos de cada tramo (como el tipo de transporte
+     * o la distancia específica) que no están presentes en la lista de IDs.
+     * * @param grafo El grafo de referencia.
+     * @param camino La lista de IDs de paradas calculada previamente.
+     * @return Una lista de objetos Ruta que representan los tramos físicos del viaje.
+     */
     private static List<Ruta> reconstruirTramos(GrafoTransporte grafo, List<String> camino) {
         List<Ruta> tramos = new ArrayList<>();
 
@@ -203,7 +259,14 @@ public class BellmanFord {
 
         return tramos;
     }
-
+    /**
+     * Consolida las métricas acumuladas de todos los tramos que componen la ruta óptima.
+     * * Recorre la lista de rutas seleccionadas para sumar los tiempos de viaje,
+     * las distancias en kilómetros y los costos monetarios, permitiendo generar
+     * el reporte detallado que se muestra en la interfaz de usuario.
+     * * @param tramos La lista de objetos {@link Ruta} que forman el camino calculado.
+     * @return Una instancia de {@link Totales} con la sumatoria de todas las variables del viaje.
+     */
     private static Totales calcularTotales(List<Ruta> tramos) {
         double tiempo = 0.0;
         double distancia = 0.0;
@@ -221,7 +284,13 @@ public class BellmanFord {
     }
 
 
-
+    /**
+     * Genera una estructura de datos estandarizada para representar la ausencia de un camino.
+     * * Se utiliza cuando el nodo destino es inalcanzable desde el origen,
+     * devolviendo una lista vacía de paradas y estableciendo el peso óptimo
+     * en {@link Double#POSITIVE_INFINITY} para indicar la desconexión.
+     * * @return Un objeto {@link ResultadoRuta} marcado como inexistente (false).
+     */
     private static ResultadoRuta resultadoVacio() {
         return new ResultadoRuta(
                 Collections.emptyList(),
@@ -234,6 +303,9 @@ public class BellmanFord {
         );
     }
 
+    /**
+     * Estructura interna de transporte de datos (Record) para agrupar los totales acumulados.
+     */
     private record Totales(double tiempo, double distancia, double costo, int transbordos) {
     }
 }

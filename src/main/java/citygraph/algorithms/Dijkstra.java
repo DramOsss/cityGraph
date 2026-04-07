@@ -8,8 +8,22 @@ import citygraph.model.TipoTransporte;
 
 import java.util.*;
 
+/**
+ * Implementación del algoritmo de Dijkstra para la búsqueda de rutas óptimas en redes de transporte.
+ * * Esta clase proporciona dos variantes de optimización:
+ * 1. **Cálculo Normal:** Minimiza pesos acumulativos simples como tiempo, distancia o costo.
+ * 2. **Cálculo por Transbordos:** Utiliza un enfoque de "Grafo de Estados" donde el peso se
+ * incrementa solo cuando se cambia el {@link TipoTransporte} entre tramos consecutivos.
+ * * Utiliza una {@link PriorityQueue} para garantizar una complejidad de $O((V+E) \log V)$,
+ * lo que la hace ideal para las funciones de búsqueda en tiempo real de la aplicación.
+ */
 public class Dijkstra {
 
+    /**
+     * Representa un estado del algoritmo en la cola de prioridad.
+     * Almacena la parada actual, la distancia acumulada hasta el momento y el tipo
+     * de transporte del último tramo utilizado para evaluar posibles transbordos.
+     */
     private static class Estado implements Comparable<Estado> {
         String id;
         double dist;
@@ -27,6 +41,12 @@ public class Dijkstra {
         }
     }
 
+    /**
+     * Llave compuesta utilizada para identificar estados únicos en el mapa de distancias.
+     * Permite que el algoritmo trate una misma parada como diferentes "nodos" dependiendo
+     * del medio de transporte con el que se llegó a ella, permitiendo el cálculo exacto
+     * de transbordos mínimos.
+     */
     private static class Key {
         String id;
         TipoTransporte tipo;
@@ -49,6 +69,16 @@ public class Dijkstra {
         }
     }
 
+    /**
+     * Punto de entrada principal para el cálculo de rutas mediante Dijkstra.
+     * * Dirige la ejecución hacia el método especializado según si el usuario
+     * desea optimizar métricas físicas/económicas o la comodidad del viaje (transbordos).
+     * * @param grafo El grafo de la ciudad.
+     * @param origenId Identificador de partida.
+     * @param destinoId Identificador de llegada.
+     * @param criterio Factor de optimización seleccionado.
+     * @return {@link ResultadoRuta} con el camino y métricas calculadas.
+     */
     public static ResultadoRuta calcular(GrafoTransporte grafo,
                                          String origenId,
                                          String destinoId,
@@ -270,7 +300,13 @@ public class Dijkstra {
                 transbordos
         );
     }
-
+    /**
+     * Contabiliza el número de cambios de tipo de transporte a lo largo de un trayecto.
+     * * Compara el {@link TipoTransporte} de cada tramo con el anterior; cada discrepancia
+     * se registra como un transbordo adicional.
+     * * @param tramos Lista de rutas que componen el camino.
+     * @return El número total de transbordos realizados.
+     */
     private static int calcularTransbordos(List<Ruta> tramos) {
         if (tramos.isEmpty()) return 0;
 
@@ -285,7 +321,15 @@ public class Dijkstra {
         }
         return total;
     }
-
+    /**
+     * Reconstruye la secuencia de identificadores de paradas a partir del mapa de predecesores.
+     * * Traza el camino inverso desde el destino hasta el origen para generar la
+     * lista ordenada de la ruta.
+     * * @param prev Mapa que asocia cada parada con el nodo que permitió llegar a ella óptimamente.
+     * @param origenId Nodo de inicio.
+     * @param destinoId Nodo final.
+     * @return Lista ordenada de paradas del trayecto.
+     */
     private static List<String> reconstruirCamino(Map<String, String> prev, String origenId, String destinoId) {
         LinkedList<String> camino = new LinkedList<>();
         String actual = destinoId;
@@ -298,7 +342,15 @@ public class Dijkstra {
         }
         return camino;
     }
-
+    /**
+     * Recupera los objetos {@link Ruta} correspondientes a los nodos del camino calculado.
+     * * Busca en la lista de adyacencia del grafo las aristas específicas que conectan
+     * cada par de nodos consecutivos en la ruta óptima.
+     * * @param grafo Estructura de datos del grafo.
+     * @param camino Lista de IDs de paradas.
+     * @return Lista de objetos Ruta que representan los tramos físicos.
+     * @throws IllegalStateException Si una conexión del camino no existe en el grafo.
+     */
     private static List<Ruta> reconstruirTramos(GrafoTransporte grafo, List<String> camino) {
         List<Ruta> tramos = new ArrayList<>();
 

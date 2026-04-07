@@ -189,7 +189,20 @@ public class RutasController implements StateAware {
             msg("Error: " + e.getMessage());
         }
     }
-
+    /**
+     * Procesa la eliminación de la conexión seleccionada en la interfaz de usuario.
+     * * El método realiza las siguientes acciones:
+     * 1. **Verificación de Selección:** Valida que el usuario haya marcado una
+     * arista específica en el {@link ListView} de rutas.
+     * 2. **Remoción Persistente:** Invoca al {@link CityGraphService} para
+     * ejecutar la eliminación tanto en la estructura de datos en memoria como
+     * en el almacenamiento físico (Base de Datos).
+     * 3. **Actualización de Interfaz:** Refresca la lista visual de rutas para
+     * reflejar el cambio, limpia los campos de entrada de datos y notifica
+     * el éxito o fracaso de la operación mediante un mensaje emergente.
+     * * Maneja excepciones de integridad referencial o conectividad informando
+     * al usuario sobre la causa del error.
+     */
     @FXML
     private void onEliminarRuta() {
         Ruta r = lstRutas.getSelectionModel().getSelectedItem();
