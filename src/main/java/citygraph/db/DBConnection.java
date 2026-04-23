@@ -12,29 +12,12 @@ import java.sql.SQLException;
  */
 public class DBConnection {
 
-    private static final String URL =
-            System.getenv().getOrDefault("CITYGRAPH_DB_URL", "jdbc:postgresql://localhost:5432/cityGraphDb");
+    private static final String URL = "jdbc:postgresql://localhost:5432/cityGraphDb";
 
-    private static final String USER =
-            System.getenv().getOrDefault("CITYGRAPH_DB_USER", "postgres");
+    private static final String USER = "postgres";
 
-    private static final String PASSWORD =
-            System.getenv().getOrDefault("CITYGRAPH_DB_PASSWORD", "12345");
+    private static final String PASSWORD = "12345";
 
-    /**
-     * Bloque estático de inicialización.
-     * * Carga el controlador (Driver) de PostgreSQL en memoria al momento de cargar
-     * la clase. Es fundamental para habilitar la comunicación entre la aplicación
-     * Java y el servidor de base de datos.
-     * * @throws RuntimeException Si el controlador de PostgreSQL no se encuentra en el classpath.
-     */
-    static {
-        try {
-            Class.forName("org.postgresql.Driver");
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException("Driver PostgreSQL no encontrado. Revisa dependencia Maven.", e);
-        }
-    }
 
     /**
      * Establece y devuelve una conexión activa con la base de datos configurada.

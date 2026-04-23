@@ -1,14 +1,12 @@
 package citygraph.service;
 
 import citygraph.algorithms.BellmanFord;
+import citygraph.algorithms.Dfs;
 import citygraph.graph.exceptions.CicloNegativoException;
 import citygraph.algorithms.Dijkstra;
 import citygraph.db.DBConnection;
 import citygraph.graph.GrafoTransporte;
-import citygraph.model.CriterioOptimizacion;
-import citygraph.model.Parada;
-import citygraph.model.ResultadoRuta;
-import citygraph.model.Ruta;
+import citygraph.model.*;
 import citygraph.repository.ParadaRepository;
 import citygraph.repository.RutaRepository;
 
@@ -355,79 +353,21 @@ public class CityGraphService {
         return "Dijkstra";
     }
 
-    public List<List<String>> calcularCaminosDFS(String origenId,
-                                                 String destinoId,
-                                                 CriterioOptimizacion criterio,
-                                                 int maxAlternativos) {
 
-        List<CaminoDFS> candidatos = new ArrayList<>();
 
-        List<String> caminoActual = new ArrayList<>();
-        caminoActual.add(origenId);
+    public List<List<String>> calcularDFS(String origenId,
+                                          String destinoId,
+                                          CriterioOptimizacion criterio,
+                                          int maxAlternativos) {
 
-        Set<String> visitados = new HashSet<>();
-        visitados.add(origenId);
 
-        dfsBuscarCaminos(origenId, destinoId, criterio, visitados, caminoActual, candidatos);
+        Objects.requireNonNull(origenId, "origenId no puede ser null");
+        Objects.requireNonNull(destinoId, "destinoId no puede ser null");
+        Objects.requireNonNull(criterio, "criterio no puede ser null");
 
-        // ordenar por peso
-        candidatos.sort(Comparator.comparingDouble(CaminoDFS::getPeso));
+        return Dfs.calcularCaminosDFS(grafo,origenId,destinoId,criterio,maxAlternativos);
 
-        List<List<String>> resultado = new ArrayList<>();
-
-        for (CaminoDFS c : candidatos) {
-            if (resultado.size() >= maxAlternativos) break;
-            resultado.add(c.getCamino());
-        }
-
-        return resultado;
     }
-
-    private void dfsBuscarCaminos(String actual,
-                                  String destino,
-                                  CriterioOptimizacion criterio,
-                                  Set<String> visitados,
-                                  List<String> caminoActual,
-                                  List<CaminoDFS> resultados) {
-
-        if (actual.equals(destino)) {
-            double peso = calcularPesoDFS(caminoActual, criterio);
-            resultados.add(new CaminoDFS(new ArrayList<>(caminoActual), peso));
-            return;
-        }
-
-        for (Ruta ruta : grafo.vecinosDe(actual)) {
-            String siguiente = ruta.getDestinoId();
-
-            if (visitados.contains(siguiente)) continue;
-
-            visitados.add(siguiente);
-            caminoActual.add(siguiente);
-
-            dfsBuscarCaminos(siguiente, destino, criterio, visitados, caminoActual, resultados);
-
-            caminoActual.remove(caminoActual.size() - 1);
-            visitados.remove(siguiente);
-        }
-    }
-
-    private double calcularPesoDFS(List<String> camino, CriterioOptimizacion criterio) {
-        double total = 0.0;
-
-        for (int i = 0; i < camino.size() - 1; i++) {
-            Ruta ruta = grafo.obtenerRuta(camino.get(i), camino.get(i + 1));
-
-            total += switch (criterio) {
-                case TIEMPO -> ruta.getTiempoMin();
-                case DISTANCIA -> ruta.getDistanciaKm();
-                case COSTO -> ruta.getCosto();
-                case TRANSBORDOS -> 1.0;
-            };
-        }
-
-        return total;
-    }
-
 
 
     // =========================

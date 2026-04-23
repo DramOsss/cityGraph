@@ -8,7 +8,7 @@
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="citygraph.ui.Controllers.CalcularController"
             stylesheets="@styles.css"
-            prefWidth="620" prefHeight="520"
+            prefWidth="750" prefHeight="1000"
             style="-fx-background-color: -color-bg;">
 
     <!-- Top bar -->

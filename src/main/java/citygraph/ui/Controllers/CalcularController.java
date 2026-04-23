@@ -136,8 +136,8 @@ public class CalcularController implements StateAware {
             txtResultado.setText(sb.toString());
 
             dibujarMapaBase();
-            // 🔵 DFS caminos alternativos
-            List<List<String>> caminosDFS = service.calcularCaminosDFS(
+            //Dfs caminos alternativos
+            List<List<String>> caminosDFS = service.calcularDFS(
                     o.getId(),
                     d.getId(),
                     criterio,
@@ -149,13 +149,8 @@ public class CalcularController implements StateAware {
 
 
             dibujarCaminosDFS(caminosDFS);
-
-
-            dibujarMejorRuta(res.getCamino());
-
             resaltarOrigenDestino(o, d);
             dibujarMejorRuta(res.getCamino());
-            resaltarOrigenDestino(o, d);
 
         } catch (Exception e) {
             txtResultado.setText("Error: " + e.getMessage());
