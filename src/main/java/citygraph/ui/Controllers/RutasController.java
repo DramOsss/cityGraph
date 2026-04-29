@@ -141,6 +141,8 @@ public class RutasController implements StateAware {
 
             service.agregarRuta(rutaPrincipal);
 
+
+
             boolean usuarioPidioInversa = false;
             boolean inversaAgregada = false;
             String mensajeFinal = "Ruta agregada: " + origen.getId() + " -> " + destino.getId();

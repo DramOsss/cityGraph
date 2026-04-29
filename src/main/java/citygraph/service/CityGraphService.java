@@ -47,14 +47,20 @@ public class CityGraphService {
     public void cargarDesdeBD() {
         grafo.limpiar();
 
-        List<Parada> paradas = paradaRepository.findAll();
-        for (Parada p : paradas) {
-            grafo.agregarParada(p);
-        }
+        try {
+            List<Parada> paradas = paradaRepository.findAll();
+            for (Parada p : paradas) {
+                grafo.agregarParada(p);
+            }
 
-        List<Ruta> rutas = rutaRepository.findAll();
-        for (Ruta r : rutas) {
-            grafo.agregarRuta(r);
+            List<Ruta> rutas = rutaRepository.findAll();
+            for (Ruta r : rutas) {
+                grafo.agregarRuta(r);
+            }
+
+        } catch (RuntimeException e) {
+            grafo.limpiar();
+            throw new RuntimeException("Error al cargar los datos desde la base de datos", e);
         }
     }
 
@@ -118,11 +124,14 @@ public class CityGraphService {
     public void agregarRuta(Ruta ruta) {
         Objects.requireNonNull(ruta, "Ruta no puede ser null");
 
+        boolean agregadaEnMemoria = false;
+
         try (Connection conn = DBConnection.connect()) {
             conn.setAutoCommit(false);
 
             try {
                 grafo.agregarRuta(ruta);
+                agregadaEnMemoria = true;
 
                 if (tieneCostosNegativos()) {
                     validarSinCiclosNegativos();
@@ -132,25 +141,37 @@ public class CityGraphService {
                 conn.commit();
 
             } catch (CicloNegativoException e) {
-                rollbackSilencioso(conn);
-                rollbackAgregarRutaMemoria(ruta);
+                rollbackConn(conn);
+
+                if (agregadaEnMemoria) {
+                    rollbackAgregarRutaMemoria(ruta);
+                }
 
                 throw new IllegalArgumentException(
-                        "No se puede agregar la ruta: generaría un ciclo negativo"
+                        "No se puede agregar la ruta: generaría un ciclo negativo", e
                 );
-            } catch (RuntimeException e) {
-                rollbackSilencioso(conn);
-                rollbackAgregarRutaMemoria(ruta);
-                throw e;
-            } catch (Exception e) {
-                rollbackSilencioso(conn);
-                rollbackAgregarRutaMemoria(ruta);
 
-                throw new RuntimeException("Error al agregar la ruta: " + e.getMessage(), e);
+            } catch (RuntimeException e) {
+                rollbackConn(conn);
+
+                if (agregadaEnMemoria) {
+                    rollbackAgregarRutaMemoria(ruta);
+                }
+
+                throw e;
+
+            } catch (Exception e) {
+                rollbackConn(conn);
+
+                if (agregadaEnMemoria) {
+                    rollbackAgregarRutaMemoria(ruta);
+                }
+
+                throw new RuntimeException("Error al agregar la ruta", e);
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error de conexión: " + e.getMessage(), e);
+            throw new RuntimeException("Error de conexión al agregar la ruta", e);
         }
     }
 
@@ -195,18 +216,18 @@ public class CityGraphService {
                 conn.commit();
 
             } catch (CicloNegativoException e) {
-                rollbackSilencioso(conn);
+                rollbackConn(conn);
                 restaurarRutaEnMemoria(respaldo);
 
                 throw new IllegalArgumentException(
                         "No se puede modificar la ruta: generaría un ciclo negativo"
                 );
             } catch (RuntimeException e) {
-                rollbackSilencioso(conn);
+                rollbackConn(conn);
                 restaurarRutaEnMemoria(respaldo);
                 throw e;
             } catch (Exception e) {
-                rollbackSilencioso(conn);
+                rollbackConn(conn);
                 restaurarRutaEnMemoria(respaldo);
 
                 throw new RuntimeException("Error al modificar la ruta: " + e.getMessage(), e);
@@ -238,11 +259,11 @@ public class CityGraphService {
                 conn.commit();
 
             } catch (RuntimeException e) {
-                rollbackSilencioso(conn);
+                rollbackConn(conn);
                 restaurarRutaEliminada(respaldo);
                 throw e;
             } catch (Exception e) {
-                rollbackSilencioso(conn);
+                rollbackConn(conn);
                 restaurarRutaEliminada(respaldo);
 
                 throw new RuntimeException("Error al eliminar la ruta: " + e.getMessage(), e);
@@ -303,9 +324,6 @@ public class CityGraphService {
         Objects.requireNonNull(destinoId, "destinoId no puede ser null");
         Objects.requireNonNull(criterio, "criterio no puede ser null");
 
-        if (criterio == CriterioOptimizacion.TRANSBORDOS) {
-            return Dijkstra.calcular(grafo, origenId, destinoId, criterio);
-        }
 
         if (criterio == CriterioOptimizacion.COSTO && hayPesosNegativos(criterio)) {
             return BellmanFord.calcular(grafo, origenId, destinoId, criterio);
@@ -413,10 +431,14 @@ public class CityGraphService {
      * falla, la base de datos no quede en un estado parcial o inconsistente.
      * * @param conn La conexión JDBC activa sobre la cual realizar el rollback.
      */
-    private void rollbackSilencioso(Connection conn) {
+    private void rollbackConn(Connection conn) {
         try {
-            conn.rollback();
-        } catch (SQLException ignored) {
+            if (conn != null) {
+                conn.rollback();
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al hacer rollback en la base de datos:");
+            e.printStackTrace();
         }
     }
     /**
@@ -428,7 +450,10 @@ public class CityGraphService {
     private void rollbackAgregarRutaMemoria(Ruta ruta) {
         try {
             grafo.eliminarRuta(ruta.getOrigenId(), ruta.getDestinoId());
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException e) {
+            System.err.println("Error al revertir la ruta en memoria: "
+                    + ruta.getOrigenId() + " -> " + ruta.getDestinoId());
+            e.printStackTrace();
         }
     }
     /**

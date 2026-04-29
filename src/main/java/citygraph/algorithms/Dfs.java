@@ -33,14 +33,6 @@ public class Dfs {
         }
     }
 
-    // Referencia al grafo para consultar vecinos y rutas
-    private static GrafoTransporte grafo;
-
-    /**
-     * Constructor del algoritmo DFS.
-     * Recibe el grafo sobre el que se harán las búsquedas.
-     */
-
 
     /**
      * Busca caminos alternativos entre origen y destino usando DFS.
@@ -61,6 +53,9 @@ public class Dfs {
         // Lista de candidatos encontrados con su peso
         List<CaminoDFS> candidatos = new ArrayList<>();
 
+        // NUEVO: evita caminos repetidos
+        Set<List<String>> caminosUnicos = new HashSet<>();
+
         // Camino actual en construcción
         List<String> caminoActual = new ArrayList<>();
         caminoActual.add(origenId);
@@ -70,7 +65,7 @@ public class Dfs {
         visitados.add(origenId);
 
         // Inicia la búsqueda DFS
-        dfsBuscarCaminos(grafo,origenId, destinoId, criterio, visitados, caminoActual,candidatos);
+        dfsBuscarCaminos(grafo,origenId, destinoId, criterio, visitados, caminoActual,candidatos, caminosUnicos);
 
         // Ordena los caminos del menor peso al mayor
         candidatos.sort(Comparator.comparingDouble(CaminoDFS::getPeso));
@@ -104,13 +99,22 @@ public class Dfs {
                                          CriterioOptimizacion criterio,
                                          Set<String> visitados,
                                          List<String> caminoActual,
-                                         List<CaminoDFS> resultados) {
+                                         List<CaminoDFS> resultados,
+                                         Set<List<String>> caminosUnicos) {
 
 
         // Caso base: si llegamos al destino, guardamos el camino
         if (actual.equals(destino)) {
             double peso = calcularPesoDFS(grafo,caminoActual, criterio);
-            resultados.add(new CaminoDFS(new ArrayList<>(caminoActual), peso));
+
+            // Copia del camino actual
+            List<String> nuevoCamino = new ArrayList<>(caminoActual);
+
+            // NUEVO: solo se agrega si no existe todavía
+            if (caminosUnicos.add(nuevoCamino)) {
+                resultados.add(new CaminoDFS(nuevoCamino, peso));
+            }
+
             return;
         }
 
@@ -128,7 +132,7 @@ public class Dfs {
             caminoActual.add(siguiente);
 
             // Llamada recursiva
-            dfsBuscarCaminos(grafo,siguiente, destino, criterio, visitados, caminoActual,resultados);
+            dfsBuscarCaminos(grafo,siguiente, destino, criterio, visitados, caminoActual,resultados,caminosUnicos);
 
             // Backtracking: deshacer cambios para probar otra rama
             caminoActual.remove(caminoActual.size() - 1);

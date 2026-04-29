@@ -39,11 +39,18 @@ public class GrafoTransporte {
      */
     public void agregarParada(Parada p) {
         Objects.requireNonNull(p, "Parada no puede ser null");
+
+        if (p.getId() == null || p.getId().isBlank()) {
+            throw new IllegalArgumentException("El ID de la parada no puede estar vacío");
+        }
+
         if (paradas.containsKey(p.getId())) {
             throw new IllegalArgumentException("Ya existe una parada con id: " + p.getId());
         }
+
+
         paradas.put(p.getId(), p);
-        adyacencia.put(p.getId(), new ArrayList<>());
+        adyacencia.putIfAbsent(p.getId(), new ArrayList<>());
     }
 
     /**
@@ -113,7 +120,10 @@ public class GrafoTransporte {
         validarParadaExiste(r.getDestinoId());
 
 
-        List<Ruta> lista = adyacencia.get(r.getOrigenId());
+        List<Ruta> lista = adyacencia.computeIfAbsent(
+                r.getOrigenId(),
+                k -> new ArrayList<>()
+        );
         boolean existe = lista.stream().anyMatch(x -> x.getDestinoId().equals(r.getDestinoId()));
         if (existe) {
             throw new IllegalArgumentException("Ya existe la ruta: " + r.getOrigenId() + " -> " + r.getDestinoId());
@@ -149,10 +159,43 @@ public class GrafoTransporte {
      */
     public void eliminarRuta(String origenId, String destinoId) {
         validarParadaExiste(origenId);
+        validarParadaExiste(destinoId);
+
         List<Ruta> lista = adyacencia.get(origenId);
 
+        if (lista == null || lista.isEmpty()) {
+            throw new RutaNoExisteException(origenId, destinoId);
+        }
+
         boolean removed = lista.removeIf(r -> r.getDestinoId().equals(destinoId));
-        if (!removed) throw new RutaNoExisteException(origenId, destinoId);
+
+        if (!removed) {
+            throw new RutaNoExisteException(origenId, destinoId);
+        }
+    }
+
+
+    /**
+     * Busca y devuelve una conexión específica entre dos paradas del grafo.
+     * * Utiliza la lista de adyacencia del origen para localizar el tramo que
+     * conecta con el destino solicitado. Es una operación crítica para la
+     * obtención de métricas detalladas tras el cálculo de una ruta.
+     * * @param origenId Identificador de la parada de salida.
+     * @param destinoId Identificador de la parada de llegada.
+     * @return El objeto {@link Ruta} que conecta ambos puntos.
+     * @throws RutaNoExisteException Si no se encuentra una arista directa
+     * entre los identificadores proporcionados.
+     */
+    public Ruta obtenerRuta(String origenId, String destinoId) {
+        validarParadaExiste(origenId);
+        validarParadaExiste(destinoId);
+
+        return adyacencia
+                .getOrDefault(origenId, Collections.emptyList())
+                .stream()
+                .filter(r -> r.getDestinoId().equals(destinoId))
+                .findFirst()
+                .orElseThrow(() -> new RutaNoExisteException(origenId, destinoId));
     }
 
     // Consultas
@@ -165,9 +208,10 @@ public class GrafoTransporte {
      */
     public List<Ruta> vecinosDe(String origenId) {
         validarParadaExiste(origenId);
-        return Collections.unmodifiableList(adyacencia.get(origenId));
+        return Collections.unmodifiableList(
+                adyacencia.getOrDefault(origenId, Collections.emptyList())
+        );
     }
-
 
 
     /**
@@ -198,26 +242,6 @@ public class GrafoTransporte {
         if (!paradas.containsKey(id)) throw new ParadaNoExisteException(id);
     }
 
-    /**
-     * Busca y devuelve una conexión específica entre dos paradas del grafo.
-     * * Utiliza la lista de adyacencia del origen para localizar el tramo que
-     * conecta con el destino solicitado. Es una operación crítica para la
-     * obtención de métricas detalladas tras el cálculo de una ruta.
-     * * @param origenId Identificador de la parada de salida.
-     * @param destinoId Identificador de la parada de llegada.
-     * @return El objeto {@link Ruta} que conecta ambos puntos.
-     * @throws RutaNoExisteException Si no se encuentra una arista directa
-     * entre los identificadores proporcionados.
-     */
-    public Ruta obtenerRuta(String origenId, String destinoId) {
-        validarParadaExiste(origenId);
-        validarParadaExiste(destinoId);
-
-        return adyacencia.get(origenId).stream()
-                .filter(r -> r.getDestinoId().equals(destinoId))
-                .findFirst()
-                .orElseThrow(() -> new RutaNoExisteException(origenId, destinoId));
-    }
 
     /**
      * Restablece el grafo a su estado inicial, eliminando todos los datos en memoria.
